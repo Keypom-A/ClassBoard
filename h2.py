@@ -8,8 +8,13 @@ app.secret_key = 'your_secret_key'
 
 DB_FILE = 'database.db'
 
+# h2.py の 10行目付近にある get_db を以下に書き換え
+
 def get_db():
-    conn = sqlite3.connect(DB_FILE)
+    # 確実にこのファイルがあるフォルダに database.db を作る指定
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    db_path = os.path.join(basedir, DB_FILE)
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
