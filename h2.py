@@ -15,20 +15,26 @@ DB_FILE = 'database.db'
 # h2.py の get_db 部分を以下に書き換え
 
 def get_db():
+    # クラウド環境で確実に書き込みができる一時フォルダを指定
     db_path = "/tmp/database.db"
-    # timeoutを設定して、他の処理を待てるようにします
+    
+    # 同時アクセスによるロックを防ぐためtimeoutを設定
     conn = sqlite3.connect(db_path, timeout=10)
     conn.row_factory = sqlite3.Row
     
-    # クラウド環境での同時アクセスに強くする設定
+    # 読み書きの衝突を防ぐWALモードを有効化（エラー防止）
     conn.execute('PRAGMA journal_mode = WAL')
     
-    # テーブル作成（なければ作る）
+    # テーブル作成（存在しない場合のみ作成）
     conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
     conn.execute('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, user TEXT, content TEXT, start TEXT, deadline TEXT, created_at TEXT)')
-    conn.execute('INSERT OR IGNORE INTO users VALUES (?, ?, ?)', ('admin', '1234', 'admin'))
+    
+    # 【重要】 adminユーザーの権限を確実にadminとして登録・更新する
+    conn.execute('INSERT OR REPLACE INTO users VALUES (?, ?, ?)', ('admin', '1234', 'admin'))
+    
     conn.commit()
     return conn
+
 
 
 def prepare_db():
