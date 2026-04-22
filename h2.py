@@ -13,6 +13,15 @@ def get_db():
     conn.row_factory = sqlite3.Row
     conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
     conn.execute('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, user TEXT, content TEXT, start TEXT, deadline TEXT, created_at TEXT)')
+    # チャット用テーブルの追加
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+            username TEXT, 
+            message TEXT, 
+            created_at TEXT
+        )
+    ''')
     # 初期のadminを登録
     conn.execute('INSERT OR IGNORE INTO users VALUES (?, ?, ?)', ('admin', '1234', 'admin'))
     conn.commit()
@@ -22,7 +31,6 @@ def get_db():
 def index():
     if 'username' not in session: return redirect(url_for('login'))
     
-    # 【重要】もしユーザー名が admin なら、DBの権限がどうあれ強制的に admin 画面を見せる
     if session['username'] == 'admin':
         session['role'] = 'admin'
         with get_db() as conn:
@@ -32,7 +40,6 @@ def index():
     now_str = datetime.now().strftime('%Y-%m-%dT%H:%M')
     conn = get_db()
     
-    # 自動削除（7日経過）
     limit_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
     conn.execute('DELETE FROM tasks WHERE created_at < ?', (limit_date,))
     conn.commit()
@@ -101,6 +108,34 @@ def delete_task(task_idx):
                 with conn:
                     conn.execute('DELETE FROM tasks WHERE id = ?', (target['id'],))
     return redirect(url_for('index'))
+
+# --- チャット機能の追加 ---
+
+@app.route('/chat', methods=['GET', 'POST'])
+def chat():
+    if 'username' not in session: return redirect(url_for('login'))
+    
+    conn = get_db()
+    if request.method == 'POST':
+        message = request.form.get('message')
+        if message:
+            with conn:
+                conn.execute('INSERT INTO chat_messages (username, message, created_at) VALUES (?, ?, ?)',
+                             (session['username'], message, datetime.now().strftime('%m/%d %H:%M')))
+            return redirect(url_for('chat'))
+
+    # 最新50件を表示
+    messages = conn.execute('SELECT * FROM chat_messages ORDER BY id DESC LIMIT 50').fetchall()
+    return render_template('chat.html', messages=messages, username=session['username'], role=session['role'])
+
+@app.route('/delete_chat/<int:msg_id>', methods=['POST'])
+def delete_chat(msg_id):
+    if session.get('role') == 'admin':
+        with get_db() as conn:
+            conn.execute('DELETE FROM chat_messages WHERE id = ?', (msg_id,))
+    return redirect(url_for('chat'))
+
+# --- 管理機能・その他 ---
 
 @app.route('/update_role/<target_user>', methods=['POST'])
 def update_role(target_user):
