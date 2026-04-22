@@ -7,27 +7,32 @@
     <style>
         body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 15px; background-color: #f0f4f8; color: #333; }
         .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         .user-info { font-size: 0.9em; color: #666; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .form-section { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ddd; }
         table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px 8px; text-align: left; }
         th { background-color: #3498db; color: white; }
         .expired { background-color: #fff0f0 !important; color: red; font-weight: bold; }
-        .btn { padding: 10px 18px; border-radius: 6px; cursor: pointer; border: none; font-size: 14px; font-weight: bold; text-decoration: none; display: inline-block; }
+        .btn { padding: 10px 18px; border-radius: 6px; cursor: pointer; border: none; font-size: 14px; font-weight: bold; text-decoration: none; display: inline-block; text-align: center; }
         .btn-add { background-color: #3498db; color: white; width: 100%; margin-top: 10px; }
         .btn-refresh { background-color: #2ecc71; color: white; }
+        .btn-chat { background-color: #007bff; color: white; }
         .btn-extend { background-color: #9b59b6; color: white; margin-right: 5px; }
         .btn-delete { background-color: #f1c40f; color: #333; }
         input[type="text"] { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; width: 95%; margin-bottom: 8px; }
         .admin-section { margin-top: 40px; padding: 20px; border: 2px dashed #e74c3c; border-radius: 10px; background-color: #fff5f5; }
+        .header-btns { display: flex; gap: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header-flex">
             <h1 style="margin:0;">ClassBoard</h1>
-            <a href="/" class="btn btn-refresh">🔄 最新に更新</a>
+            <div class="header-btns">
+                <a href="{{ url_for('chat') }}" class="btn btn-chat">💬 チャット</a>
+                <a href="/" class="btn btn-refresh">🔄 更新</a>
+            </div>
         </div>
         <div class="user-info">
             👤 ログイン：<strong>{{ username }}</strong> （権限：{{ role }}） | <a href="/logout" style="color:#e74c3c;">ログアウト</a>
@@ -80,7 +85,7 @@
         {% if role == 'admin' %}
         <div class="admin-section">
             <h4 style="color: #e74c3c; margin-top: 0;">🔧 管理者専用ツール</h4>
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <a href="/users" class="btn" style="background-color: #95a5a6; color: white;">👥 ユーザー一覧・権限変更</a>
                 <form action="/clear" method="post">
                     <button type="submit" class="btn" style="background-color: #e74c3c; color: white;" onclick="return confirm('全てのタスクを消去します。よろしいですか？')">🗑 全タスク一括削除</button>
