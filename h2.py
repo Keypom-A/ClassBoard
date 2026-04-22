@@ -6,16 +6,14 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-# クラウドで確実に書き込みができる場所を指定
 DB_PATH = "/tmp/classboard.db"
 
 def get_db():
     conn = sqlite3.connect(DB_PATH, timeout=20)
     conn.row_factory = sqlite3.Row
-    # 接続のたびにテーブルを確認（エラー防止）
     conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
     conn.execute('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, user TEXT, content TEXT, start TEXT, deadline TEXT, created_at TEXT)')
-    # 管理者(admin/1234)を確実に作成
+    # 初期のadminを登録
     conn.execute('INSERT OR IGNORE INTO users VALUES (?, ?, ?)', ('admin', '1234', 'admin'))
     conn.commit()
     return conn
@@ -24,15 +22,21 @@ def get_db():
 def index():
     if 'username' not in session: return redirect(url_for('login'))
     
+    # 【重要】もしユーザー名が admin なら、DBの権限がどうあれ強制的に admin 画面を見せる
+    if session['username'] == 'admin':
+        session['role'] = 'admin'
+        with get_db() as conn:
+            conn.execute('UPDATE users SET role = ? WHERE username = ?', ('admin', 'admin'))
+            conn.commit()
+
     now_str = datetime.now().strftime('%Y-%m-%dT%H:%M')
     conn = get_db()
     
-    # 7日経過したタスクを削除
+    # 自動削除（7日経過）
     limit_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
     conn.execute('DELETE FROM tasks WHERE created_at < ?', (limit_date,))
     conn.commit()
     
-    # データを取得して並び替え
     rows = conn.execute('SELECT * FROM tasks').fetchall()
     tasks = [dict(r) for r in rows]
     
@@ -63,7 +67,6 @@ def extend_task(task_idx):
     if 'username' in session:
         conn = get_db()
         rows = conn.execute('SELECT * FROM tasks').fetchall()
-        # 並び替え後の順番で対象を特定
         temp_tasks = [dict(r) for r in rows]
         now_str = datetime.now().strftime('%Y-%m-%dT%H:%M')
         temp_tasks.sort(key=lambda x: (0, x['deadline']) if x['deadline'] != "-" and x['deadline'] < now_str else (1, x['deadline']) if x['deadline'] != "-" else (2, "9999"))
@@ -73,8 +76,10 @@ def extend_task(task_idx):
             if session.get('role') == 'admin' or target['user'] == session['username']:
                 new_deadline = "-"
                 if target['deadline'] != "-":
-                    curr = datetime.strptime(target['deadline'], '%Y-%m-%dT%H:%M')
-                    new_deadline = (curr + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
+                    try:
+                        curr = datetime.strptime(target['deadline'], '%Y-%m-%dT%H:%M')
+                        new_deadline = (curr + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
+                    except: pass
                 
                 with conn:
                     conn.execute('UPDATE tasks SET deadline = ?, created_at = ? WHERE id = ?',
@@ -87,7 +92,6 @@ def delete_task(task_idx):
         conn = get_db()
         rows = conn.execute('SELECT * FROM tasks').fetchall()
         temp_tasks = [dict(r) for r in rows]
-        # 並び替え後の順番で削除対象を特定
         now_str = datetime.now().strftime('%Y-%m-%dT%H:%M')
         temp_tasks.sort(key=lambda x: (0, x['deadline']) if x['deadline'] != "-" and x['deadline'] < now_str else (1, x['deadline']) if x['deadline'] != "-" else (2, "9999"))
         
@@ -97,6 +101,15 @@ def delete_task(task_idx):
                 with conn:
                     conn.execute('DELETE FROM tasks WHERE id = ?', (target['id'],))
     return redirect(url_for('index'))
+
+@app.route('/update_role/<target_user>', methods=['POST'])
+def update_role(target_user):
+    if session.get('role') == 'admin':
+        new_role = request.form['new_role']
+        with get_db() as conn:
+            conn.execute('UPDATE users SET role = ? WHERE username = ?', (new_role, target_user))
+            conn.commit()
+    return redirect(url_for('user_list'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -123,7 +136,15 @@ def register():
 def user_list():
     if session.get('role') != 'admin': return "権限なし"
     users = get_db().execute('SELECT * FROM users').fetchall()
-    return render_template('users.html', users=users)
+    return render_template('users.html', users=users, username=session['username'])
+
+@app.route('/clear', methods=['POST'])
+def clear_tasks():
+    if session.get('role') == 'admin':
+        with get_db() as conn:
+            conn.execute('DELETE FROM tasks')
+            conn.commit()
+    return redirect(url_for('index'))
 
 @app.route('/logout')
 def logout():
