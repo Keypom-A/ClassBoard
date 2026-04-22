@@ -12,11 +12,19 @@ DB_FILE = 'database.db'
 
 # h2.py の get_db 部分を以下に書き換え
 
+# h2.py の get_db 部分を以下に書き換え
+
 def get_db():
-    # クラウド環境でも確実に書き込みができる一時フォルダ(/tmp)に作成する
     db_path = "/tmp/database.db"
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
+    # --- ここから追記 ---
+    # 接続するたびにテーブルがあるか確認し、なければ作成する
+    conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
+    conn.execute('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, user TEXT, content TEXT, start TEXT, deadline TEXT, created_at TEXT)')
+    conn.execute('INSERT OR IGNORE INTO users VALUES (?, ?, ?)', ('admin', '1234', 'admin'))
+    conn.commit()
+    # --- ここまで ---
     return conn
 
 
