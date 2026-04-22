@@ -2,29 +2,56 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ユーザー一覧</title>
+    <title>ユーザー管理 - ClassBoard</title>
     <style>
-        body { font-family: sans-serif; margin: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-        th { background-color: #f4f4f4; }
+        body { font-family: sans-serif; margin: 20px; background-color: #f0f4f8; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border-bottom: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #95a5a6; color: white; }
+        .btn-back { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #3498db; font-weight: bold; }
+        .save-btn { background-color: #2ecc71; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>登録ユーザー一覧</h1>
-    <a href="/">← タスク一覧に戻る</a>
-    <hr>
-    <table>
-        <tr>
-            <th>ユーザー名</th>
-            <th>権限</th>
-        </tr>
-        {% for user in users %}
-        <tr>
-            <td>{{ user.name }}</td>
-            <td>{{ user.role }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <div class="container">
+        <h1>👥 登録ユーザー一覧</h1>
+        <a href="/" class="btn-back">← タスク一覧に戻る</a>
+        <hr>
+        <table>
+            <thead>
+                <tr>
+                    <th>ユーザー名</th>
+                    <th>現在の権限</th>
+                    <th>権限の変更</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <!-- user['username'] ではなく user.username で確実に表示させます -->
+                    <td><strong>{{ user.username }}</strong></td>
+                    <td>{{ user.role }}</td>
+                    <td>
+                        <!-- 自分自身（admin）の権限は変えられないようにする -->
+                        {% if user.username != username %}
+                        <form action="/update_role/{{ user.username }}" method="post" style="display:inline;">
+                            <select name="new_role" style="padding: 5px;">
+                                <option value="user" {% if user.role == 'user' %}selected{% endif %}>一般 (user)</option>
+                                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>管理者 (admin)</option>
+                            </select>
+                            <button type="submit" class="save-btn">保存</button>
+                        </form>
+                        {% else %}
+                            <small style="color: #999;">（あなた自身）</small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </tbody>
+        </table>
+    </div>
 </body>
 </html>
+
