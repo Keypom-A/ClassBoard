@@ -16,15 +16,18 @@ DB_FILE = 'database.db'
 
 def get_db():
     db_path = "/tmp/database.db"
-    conn = sqlite3.connect(db_path)
+    # timeoutを設定して、他の処理を待てるようにします
+    conn = sqlite3.connect(db_path, timeout=10)
     conn.row_factory = sqlite3.Row
-    # --- ここから追記 ---
-    # 接続するたびにテーブルがあるか確認し、なければ作成する
+    
+    # クラウド環境での同時アクセスに強くする設定
+    conn.execute('PRAGMA journal_mode = WAL')
+    
+    # テーブル作成（なければ作る）
     conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
     conn.execute('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, user TEXT, content TEXT, start TEXT, deadline TEXT, created_at TEXT)')
     conn.execute('INSERT OR IGNORE INTO users VALUES (?, ?, ?)', ('admin', '1234', 'admin'))
     conn.commit()
-    # --- ここまで ---
     return conn
 
 
