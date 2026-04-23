@@ -1,60 +1,61 @@
-import sqlite3
 import os
+import psycopg2
+import psycopg2.extras
 from flask import Flask, render_template, request, redirect, url_for, session
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-DB_PATH = "/tmp/classboard.db"
-
-# 日本時間を取得するヘルパー関数
-def get_now_jst():
-    # Render等の海外サーバーでも日本時間(+9時間)にする
-    return datetime.utcnow() + timedelta(hours=9)
+# --- データベース設定（Neon） ---
+DATABASE_URL = "postgresql://neondb_owner:npg_SqsrO6RvnW5K@ep-super-bread-ao8t5vev.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH, timeout=20)
-    conn.row_factory = sqlite3.Row
-    conn.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
-    conn.execute('CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, user TEXT, content TEXT, start TEXT, deadline TEXT, created_at TEXT)')
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS chat_messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            username TEXT, 
-            message TEXT, 
-            created_at TEXT
-        )
-    ''')
-    conn.execute('INSERT OR IGNORE INTO users VALUES (?, ?, ?)', ('admin', '1234', 'admin'))
-    conn.commit()
+    # PostgreSQLへの接続
+    conn = psycopg2.connect(DATABASE_URL)
     return conn
+
+# テーブル作成用
+def init_db():
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
+            cur.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, start TEXT, deadline TEXT, created_at TIMESTAMP)')
+            cur.execute('CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, username TEXT, message TEXT, created_at TEXT)')
+            # 初期adminの登録
+            cur.execute('INSERT INTO users (username, password, role) VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING', ('admin', '1234', 'admin'))
+        conn.commit()
+
+# 起動時にテーブルを自動準備
+init_db()
+
+def get_now_jst():
+    return datetime.utcnow() + timedelta(hours=9)
 
 @app.route('/')
 def index():
     if 'username' not in session: return redirect(url_for('login'))
     
-    conn = get_db()
-    
-    user_data = conn.execute('SELECT role FROM users WHERE username = ?', (session['username'],)).fetchone()
-    if user_data:
-        session['role'] = user_data['role']
-    
-    if session['username'] == 'admin':
-        session['role'] = 'admin'
-        conn.execute('UPDATE users SET role = ? WHERE username = ?', ('admin', 'admin'))
-        conn.commit()
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            cur.execute('SELECT role FROM users WHERE username = %s', (session['username'],))
+            user_data = cur.fetchone()
+            if user_data:
+                session['role'] = user_data['role']
+            
+            if session['username'] == 'admin':
+                session['role'] = 'admin'
+                cur.execute('UPDATE users SET role = %s WHERE username = %s', ('admin', 'admin'))
 
-    now_jst = get_now_jst()
-    now_str = now_jst.strftime('%Y-%m-%dT%H:%M')
-    
-    # 日本時間基準で7日経過したものを削除
-    limit_date = (now_jst - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
-    conn.execute('DELETE FROM tasks WHERE created_at < ?', (limit_date,))
-    conn.commit()
-    
-    rows = conn.execute('SELECT * FROM tasks').fetchall()
-    tasks = [dict(r) for r in rows]
+            now_jst = get_now_jst()
+            now_str = now_jst.strftime('%Y-%m-%dT%H:%M')
+            
+            # 7日経過削除
+            limit_date = now_jst - timedelta(days=7)
+            cur.execute('DELETE FROM tasks WHERE created_at < %s', (limit_date,))
+            
+            cur.execute('SELECT * FROM tasks')
+            tasks = [dict(r) for r in cur.fetchall()]
     
     def sort_logic(x):
         d = x['deadline']
@@ -71,73 +72,78 @@ def add_task():
         content = request.form['content']
         start = request.form['start'] or "-"
         deadline = request.form['deadline'] or "-"
-        created_at = get_now_jst().strftime('%Y-%m-%d %H:%M:%S')
+        created_at = get_now_jst()
         if content:
             with get_db() as conn:
-                conn.execute('INSERT INTO tasks (user, content, start, deadline, created_at) VALUES (?, ?, ?, ?, ?)',
-                             (session['username'], content, start, deadline, created_at))
+                with conn.cursor() as cur:
+                    cur.execute('INSERT INTO tasks ("user", content, start, deadline, created_at) VALUES (%s, %s, %s, %s, %s)',
+                                 (session['username'], content, start, deadline, created_at))
+                conn.commit()
     return redirect(url_for('index'))
 
 @app.route('/extend/<int:task_idx>', methods=['POST'])
 def extend_task(task_idx):
     if 'username' in session:
-        conn = get_db()
-        rows = conn.execute('SELECT * FROM tasks').fetchall()
-        temp_tasks = [dict(r) for r in rows]
-        now_str = get_now_jst().strftime('%Y-%m-%dT%H:%M')
-        temp_tasks.sort(key=lambda x: (0, x['deadline']) if x['deadline'] != "-" and x['deadline'] < now_str else (1, x['deadline']) if x['deadline'] != "-" else (2, "9999"))
-        
-        if 0 <= task_idx < len(temp_tasks):
-            target = temp_tasks[task_idx]
-            if session.get('role') == 'admin' or target['user'] == session['username']:
-                new_deadline = "-"
-                if target['deadline'] != "-":
-                    try:
-                        curr = datetime.strptime(target['deadline'], '%Y-%m-%dT%H:%M')
-                        new_deadline = (curr + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
-                    except: pass
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+                cur.execute('SELECT * FROM tasks')
+                temp_tasks = [dict(r) for r in cur.fetchall()]
+                now_str = get_now_jst().strftime('%Y-%m-%dT%H:%M')
+                temp_tasks.sort(key=lambda x: (0, x['deadline']) if x['deadline'] != "-" and x['deadline'] < now_str else (1, x['deadline']) if x['deadline'] != "-" else (2, "9999"))
                 
-                with conn:
-                    conn.execute('UPDATE tasks SET deadline = ?, created_at = ? WHERE id = ?',
-                                 (new_deadline, get_now_jst().strftime('%Y-%m-%d %H:%M:%S'), target['id']))
+                if 0 <= task_idx < len(temp_tasks):
+                    target = temp_tasks[task_idx]
+                    if session.get('role') == 'admin' or target['user'] == session['username']:
+                        new_deadline = "-"
+                        if target['deadline'] != "-":
+                            try:
+                                curr = datetime.strptime(target['deadline'], '%Y-%m-%dT%H:%M')
+                                new_deadline = (curr + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
+                            except: pass
+                        cur.execute('UPDATE tasks SET deadline = %s, created_at = %s WHERE id = %s',
+                                     (new_deadline, get_now_jst(), target['id']))
+            conn.commit()
     return redirect(url_for('index'))
 
 @app.route('/delete/<int:task_idx>', methods=['POST'])
 def delete_task(task_idx):
     if 'username' in session:
-        conn = get_db()
-        rows = conn.execute('SELECT * FROM tasks').fetchall()
-        temp_tasks = [dict(r) for r in rows]
-        now_str = get_now_jst().strftime('%Y-%m-%dT%H:%M')
-        temp_tasks.sort(key=lambda x: (0, x['deadline']) if x['deadline'] != "-" and x['deadline'] < now_str else (1, x['deadline']) if x['deadline'] != "-" else (2, "9999"))
-        
-        if 0 <= task_idx < len(temp_tasks):
-            target = temp_tasks[task_idx]
-            if session.get('role') == 'admin' or target['user'] == session['username']:
-                with conn:
-                    conn.execute('DELETE FROM tasks WHERE id = ?', (target['id'],))
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+                cur.execute('SELECT * FROM tasks')
+                temp_tasks = [dict(r) for r in cur.fetchall()]
+                now_str = get_now_jst().strftime('%Y-%m-%dT%H:%M')
+                temp_tasks.sort(key=lambda x: (0, x['deadline']) if x['deadline'] != "-" and x['deadline'] < now_str else (1, x['deadline']) if x['deadline'] != "-" else (2, "9999"))
+                
+                if 0 <= task_idx < len(temp_tasks):
+                    target = temp_tasks[task_idx]
+                    if session.get('role') == 'admin' or target['user'] == session['username']:
+                        cur.execute('DELETE FROM tasks WHERE id = %s', (target['id'],))
+            conn.commit()
     return redirect(url_for('index'))
 
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
     if 'username' not in session: return redirect(url_for('login'))
-    conn = get_db()
-    if request.method == 'POST':
-        message = request.form.get('message')
-        if message:
-            with conn:
-                # 送信時刻も日本時間で保存
-                conn.execute('INSERT INTO chat_messages (username, message, created_at) VALUES (?, ?, ?)',
-                             (session['username'], message, get_now_jst().strftime('%m/%d %H:%M')))
-            return redirect(url_for('chat'))
-    messages = conn.execute('SELECT * FROM chat_messages ORDER BY id DESC LIMIT 50').fetchall()
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            if request.method == 'POST':
+                message = request.form.get('message')
+                if message:
+                    cur.execute('INSERT INTO chat_messages (username, message, created_at) VALUES (%s, %s, %s)',
+                                 (session['username'], message, get_now_jst().strftime('%m/%d %H:%M')))
+                    conn.commit()
+            cur.execute('SELECT * FROM chat_messages ORDER BY id DESC LIMIT 50')
+            messages = cur.fetchall()
     return render_template('chat.html', messages=messages, username=session['username'], role=session.get('role'))
 
 @app.route('/delete_chat/<int:msg_id>', methods=['POST'])
 def delete_chat(msg_id):
     if session.get('role') == 'admin':
         with get_db() as conn:
-            conn.execute('DELETE FROM chat_messages WHERE id = ?', (msg_id,))
+            with conn.cursor() as cur:
+                cur.execute('DELETE FROM chat_messages WHERE id = %s', (msg_id,))
+            conn.commit()
     return redirect(url_for('chat'))
 
 @app.route('/update_role/<target_user>', methods=['POST'])
@@ -145,19 +151,22 @@ def update_role(target_user):
     if session.get('role') == 'admin':
         new_role = request.form['new_role']
         with get_db() as conn:
-            conn.execute('UPDATE users SET role = ? WHERE username = ?', (new_role, target_user))
+            with conn.cursor() as cur:
+                cur.execute('UPDATE users SET role = %s WHERE username = %s', (new_role, target_user))
             conn.commit()
     return redirect(url_for('user_list'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        conn = get_db()
-        user = conn.execute('SELECT * FROM users WHERE username = ? AND password = ?',
-                                (request.form['username'], request.form['password'])).fetchone()
-        if user:
-            session['username'], session['role'] = user['username'], user['role']
-            return redirect(url_for('index'))
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+                cur.execute('SELECT * FROM users WHERE username = %s AND password = %s',
+                             (request.form['username'], request.form['password']))
+                user = cur.fetchone()
+                if user:
+                    session['username'], session['role'] = user['username'], user['role']
+                    return redirect(url_for('index'))
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -165,7 +174,9 @@ def register():
     if request.method == 'POST':
         try:
             with get_db() as conn:
-                conn.execute('INSERT INTO users VALUES (?, ?, ?)', (request.form['username'], request.form['password'], 'user'))
+                with conn.cursor() as cur:
+                    cur.execute('INSERT INTO users VALUES (%s, %s, %s)', (request.form['username'], request.form['password'], 'user'))
+                conn.commit()
             return redirect(url_for('login'))
         except: return "既に使われている名前です"
     return render_template('register.html')
@@ -173,14 +184,18 @@ def register():
 @app.route('/users')
 def user_list():
     if session.get('role') != 'admin': return "権限なし"
-    users = get_db().execute('SELECT * FROM users').fetchall()
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            cur.execute('SELECT * FROM users')
+            users = cur.fetchall()
     return render_template('users.html', users=users, username=session['username'])
 
 @app.route('/clear', methods=['POST'])
 def clear_tasks():
     if session.get('role') == 'admin':
         with get_db() as conn:
-            conn.execute('DELETE FROM tasks')
+            with conn.cursor() as cur:
+                cur.execute('DELETE FROM tasks')
             conn.commit()
     return redirect(url_for('index'))
 
