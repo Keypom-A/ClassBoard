@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
+# --- データベース設定（Renderの環境変数から読み込む） ---
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db():
@@ -19,12 +20,7 @@ def init_db():
         with conn.cursor() as cur:
             cur.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
             cur.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, start TEXT, deadline TEXT, created_at TIMESTAMP, priority INTEGER DEFAULT 1)')
-            # chat_messagesにreceiver列を追加
-            cur.execute('CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, username TEXT, message TEXT, created_at TEXT)')
-            cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='chat_messages' AND column_name='receiver'")
-            if not cur.fetchone():
-                cur.execute("ALTER TABLE chat_messages ADD COLUMN receiver TEXT DEFAULT 'all'")
-            
+            cur.execute('CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, username TEXT, message TEXT, created_at TEXT, receiver TEXT DEFAULT \'all\')')
             cur.execute('INSERT INTO users (username, password, role) VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING', ('admin', '1234', 'admin'))
         conn.commit()
 
@@ -44,6 +40,7 @@ def index():
             if session['username'] == 'admin':
                 session['role'] = 'admin'
                 cur.execute('UPDATE users SET role = %s WHERE username = %s', ('admin', 'admin'))
+            
             now_jst = get_now_jst()
             now_str = now_jst.strftime('%Y-%m-%dT%H:%M')
             limit_date = now_jst - timedelta(days=7)
@@ -85,16 +82,12 @@ def chat():
                                  (me, msg, get_now_jst().strftime('%m/%d %H:%M'), rx))
                     conn.commit()
                 return redirect(url_for('chat'))
-
-            # 全員宛(all)、自分が送信者、自分が受信者のいずれかのメッセージのみ取得
             cur.execute('SELECT * FROM chat_messages WHERE receiver = %s OR username = %s OR receiver = %s ORDER BY id DESC LIMIT 50', ('all', me, me))
             messages = cur.fetchall()
-            # 宛先候補のユーザー一覧
             cur.execute('SELECT username FROM users WHERE username != %s', (me,))
             users = cur.fetchall()
     return render_template('chat.html', messages=messages, users=users, username=me, role=session.get('role'))
 
-# 他のルート(delete, extend, update_role, login, register, users, clear, logout)は前回のものを継承
 @app.route('/extend/<int:task_idx>', methods=['POST'])
 def extend_task(task_idx):
     if 'username' in session:
