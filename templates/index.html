@@ -37,7 +37,6 @@
                 <a href="/" class="btn btn-refresh">🔄 更新</a>
             </div>
         </div>
-        
         <div class="user-info">
             👤 ログイン中：<strong>{{ username }}</strong> （{{ role }}） | <a href="/logout" style="color:#e74c3c;">ログアウト</a>
         </div>
@@ -52,7 +51,8 @@
                     <option value="1" selected>⭐ 中（ふつう）</option>
                     <option value="0">💤 低（あとで）</option>
                 </select>
-                期限: <input type="text" name="deadline" placeholder="なしなら空欄" onfocus="(this.type='datetime-local')" onblur="if(!this.value)this.type='text'" style="width: auto;">
+                開始: <input type="text" name="start" placeholder="開始（空欄可）" onfocus="(this.type='datetime-local')" onblur="if(!this.value)this.type='text'" style="width: auto;">
+                期限: <input type="text" name="deadline" placeholder="期限（空欄可）" onfocus="(this.type='datetime-local')" onblur="if(!this.value)this.type='text'" style="width: auto;">
                 <button type="submit" class="btn btn-add">みんなに共有する</button>
             </form>
         </div>
