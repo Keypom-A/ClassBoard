@@ -82,11 +82,16 @@ def chat():
                                  (me, msg, get_now_jst().strftime('%m/%d %H:%M'), rx))
                     conn.commit()
                 return redirect(url_for('chat'))
+
+            # 全員宛(all)、自分が送信者、自分が受信者のいずれかのメッセージのみ取得
             cur.execute('SELECT * FROM chat_messages WHERE receiver = %s OR username = %s OR receiver = %s ORDER BY id DESC LIMIT 50', ('all', me, me))
             messages = cur.fetchall()
+            
+            # 【重要】ここ：自分以外のユーザーを「宛先リスト」として取得
             cur.execute('SELECT username FROM users WHERE username != %s', (me,))
-            users = cur.fetchall()
-    return render_template('chat.html', messages=messages, users=users, username=me, role=session.get('role'))
+            user_list = cur.fetchall()
+            
+    return render_template('chat.html', messages=messages, users=user_list, username=me, role=session.get('role'))
 
 @app.route('/extend/<int:task_idx>', methods=['POST'])
 def extend_task(task_idx):
