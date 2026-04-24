@@ -49,7 +49,7 @@
             <div class="input-row">
                 <select name="receiver">
                     <option value="all">📢 全員</option>
-                    <option value="admin">🚨 管理者へ</option>
+                    <option value="管理者">🚨 管理者へ</option>
                     {% for u in users %}
                         <option value="{{ u.username }}">👤 {{ u.username }}</option>
                     {% endfor %}
