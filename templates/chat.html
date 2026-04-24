@@ -49,11 +49,10 @@
             <div class="input-row">
                 <select name="receiver">
                     <option value="all">📢 全員</option>
+                    <!-- 管理者宛は内部値(value)をadminにして確実に届くようにする -->
                     <option value="admin">🚨 管理者へ</option>
                     {% for u in users %}
-                        {% if u.username != 'admin' %}
                         <option value="{{ u.username }}">👤 {{ u.username }}</option>
-                        {% endif %}
                     {% endfor %}
                 </select>
                 <input type="text" name="message" placeholder="メッセージを入力..." required autocomplete="off">
