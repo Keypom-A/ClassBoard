@@ -20,9 +20,12 @@
         .btn-chat { background-color: #007bff; color: white; }
         .btn-extend { background-color: #9b59b6; color: white; margin-right: 5px; }
         .btn-delete { background-color: #f1c40f; color: #333; }
-        input[type="text"] { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; width: 95%; margin-bottom: 8px; }
+        input[type="text"], select { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; width: 95%; margin-bottom: 8px; }
         .admin-section { margin-top: 40px; padding: 20px; border: 2px dashed #e74c3c; border-radius: 10px; background-color: #fff5f5; }
         .header-btns { display: flex; gap: 10px; }
+        .prio-2 { color: #e74c3c; font-weight: bold; } /* 高：赤 */
+        .prio-1 { color: #f39c12; } /* 中：オレンジ */
+        .prio-0 { color: #7f8c8d; } /* 低：グレー */
     </style>
 </head>
 <body>
@@ -42,8 +45,13 @@
             <form action="/add" method="post">
                 <b>📝 新しい投稿</b><br>
                 <input type="text" name="content" placeholder="内容（例：数学の宿題）" required>
-                開始: <input type="text" name="start" placeholder="なしなら空欄" onfocus="(this.type='datetime-local')" onblur="if(!this.value)this.type='text'">
-                期限: <input type="text" name="deadline" placeholder="なしなら空欄" onfocus="(this.type='datetime-local')" onblur="if(!this.value)this.type='text'">
+                重要度: 
+                <select name="priority" style="width: auto; margin-right: 10px;">
+                    <option value="2">🔥 高（最優先）</option>
+                    <option value="1" selected>⭐ 中（ふつう）</option>
+                    <option value="0">💤 低（あとで）</option>
+                </select>
+                期限: <input type="text" name="deadline" placeholder="なしなら空欄" onfocus="(this.type='datetime-local')" onblur="if(!this.value)this.type='text'" style="width: auto;">
                 <button type="submit" class="btn btn-add">みんなに共有する</button>
             </form>
         </div>
@@ -62,7 +70,10 @@
                 {% for task in tasks %}
                 <tr class="{% if task.deadline != '-' and task.deadline < now %}expired{% endif %}">
                     <td>{{ task.user }}</td>
-                    <td>{{ task.content }}</td>
+                    <td class="prio-{{ task.priority }}">
+                        {% if task.priority == 2 %}🔥{% elif task.priority == 0 %}💤{% endif %}
+                        {{ task.content }}
+                    </td>
                     <td>{{ task.deadline | replace('T', ' ') }}</td>
                     <td>
                         {% if role == 'admin' or task.user == username %}
@@ -81,7 +92,6 @@
             </tbody>
         </table>
 
-        <!-- ここから管理者メニュー：roleがadminの時だけ表示 -->
         {% if role == 'admin' %}
         <div class="admin-section">
             <h4 style="color: #e74c3c; margin-top: 0;">🔧 管理者専用ツール</h4>
