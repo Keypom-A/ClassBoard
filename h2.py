@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-# --- データベース設定（Renderの環境変数から読み込む） ---
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db():
@@ -19,12 +18,12 @@ def init_db():
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
-            cur.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, start TEXT, deadline TEXT, created_at TIMESTAMP)')
+            cur.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, start TEXT, deadline TEXT, created_at TIMESTAMP, priority INTEGER DEFAULT 1)')
+            # chat_messagesにreceiver列を追加
             cur.execute('CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, username TEXT, message TEXT, created_at TEXT)')
-            # 優先度(priority)列がなければ追加
-            cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='tasks' AND column_name='priority'")
+            cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='chat_messages' AND column_name='receiver'")
             if not cur.fetchone():
-                cur.execute('ALTER TABLE tasks ADD COLUMN priority INTEGER DEFAULT 1') # 0:低, 1:中, 2:高
+                cur.execute("ALTER TABLE chat_messages ADD COLUMN receiver TEXT DEFAULT 'all'")
             
             cur.execute('INSERT INTO users (username, password, role) VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING', ('admin', '1234', 'admin'))
         conn.commit()
@@ -37,17 +36,14 @@ def get_now_jst():
 @app.route('/')
 def index():
     if 'username' not in session: return redirect(url_for('login'))
-    
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             cur.execute('SELECT role FROM users WHERE username = %s', (session['username'],))
             user_data = cur.fetchone()
             if user_data: session['role'] = user_data['role']
-            
             if session['username'] == 'admin':
                 session['role'] = 'admin'
                 cur.execute('UPDATE users SET role = %s WHERE username = %s', ('admin', 'admin'))
-
             now_jst = get_now_jst()
             now_str = now_jst.strftime('%Y-%m-%dT%H:%M')
             limit_date = now_jst - timedelta(days=7)
@@ -55,34 +51,50 @@ def index():
             cur.execute('SELECT * FROM tasks')
             tasks = [dict(r) for r in cur.fetchall()]
     
-    # 並び替え： 期限切れ(0) > 期限あり(1) > 期限なし(2) の中で「優先度(2>1>0)」順
     def sort_logic(x):
-        d = x['deadline']
-        p = x.get('priority', 1)
+        d, p = x['deadline'], x.get('priority', 1)
         if d == "-": return (2, -p, "9999")
         if d < now_str: return (0, -p, d)
         return (1, -p, d)
     tasks.sort(key=sort_logic)
-    
     return render_template('index.html', tasks=tasks, username=session['username'], role=session['role'], now=now_str)
 
 @app.route('/add', methods=['POST'])
 def add_task():
     if 'username' in session:
-        content = request.form['content']
-        start = request.form['start'] or "-"
-        deadline = request.form['deadline'] or "-"
+        content, start, deadline = request.form['content'], request.form['start'] or "-", request.form['deadline'] or "-"
         priority = int(request.form.get('priority', 1))
-        created_at = get_now_jst()
         if content:
             with get_db() as conn:
                 with conn.cursor() as cur:
                     cur.execute('INSERT INTO tasks ("user", content, start, deadline, created_at, priority) VALUES (%s, %s, %s, %s, %s, %s)',
-                                 (session['username'], content, start, deadline, created_at, priority))
+                                 (session['username'], content, start, deadline, get_now_jst(), priority))
                 conn.commit()
     return redirect(url_for('index'))
 
-# --- 他のルート(extend, delete, chat等)は変更なし ---
+@app.route('/chat', methods=['GET', 'POST'])
+def chat():
+    if 'username' not in session: return redirect(url_for('login'))
+    me = session['username']
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            if request.method == 'POST':
+                msg, rx = request.form.get('message'), request.form.get('receiver', 'all')
+                if msg:
+                    cur.execute('INSERT INTO chat_messages (username, message, created_at, receiver) VALUES (%s, %s, %s, %s)',
+                                 (me, msg, get_now_jst().strftime('%m/%d %H:%M'), rx))
+                    conn.commit()
+                return redirect(url_for('chat'))
+
+            # 全員宛(all)、自分が送信者、自分が受信者のいずれかのメッセージのみ取得
+            cur.execute('SELECT * FROM chat_messages WHERE receiver = %s OR username = %s OR receiver = %s ORDER BY id DESC LIMIT 50', ('all', me, me))
+            messages = cur.fetchall()
+            # 宛先候補のユーザー一覧
+            cur.execute('SELECT username FROM users WHERE username != %s', (me,))
+            users = cur.fetchall()
+    return render_template('chat.html', messages=messages, users=users, username=me, role=session.get('role'))
+
+# 他のルート(delete, extend, update_role, login, register, users, clear, logout)は前回のものを継承
 @app.route('/extend/<int:task_idx>', methods=['POST'])
 def extend_task(task_idx):
     if 'username' in session:
@@ -92,24 +104,21 @@ def extend_task(task_idx):
                 temp_tasks = [dict(r) for r in cur.fetchall()]
                 now_str = get_now_jst().strftime('%Y-%m-%dT%H:%M')
                 def task_sort(x):
-                    d = x['deadline']
-                    p = x.get('priority', 1)
+                    d, p = x['deadline'], x.get('priority', 1)
                     if d == "-": return (2, -p, "9999")
                     if d < now_str: return (0, -p, d)
                     return (1, -p, d)
                 temp_tasks.sort(key=task_sort)
-                
                 if 0 <= task_idx < len(temp_tasks):
                     target = temp_tasks[task_idx]
                     if session.get('role') == 'admin' or target['user'] == session['username']:
-                        new_deadline = "-"
+                        new_dl = "-"
                         if target['deadline'] != "-":
                             try:
                                 curr = datetime.strptime(target['deadline'], '%Y-%m-%dT%H:%M')
-                                new_deadline = (curr + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
+                                new_dl = (curr + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
                             except: pass
-                        cur.execute('UPDATE tasks SET deadline = %s, created_at = %s WHERE id = %s',
-                                     (new_deadline, get_now_jst(), target['id']))
+                        cur.execute('UPDATE tasks SET deadline = %s, created_at = %s WHERE id = %s', (new_dl, get_now_jst(), target['id']))
             conn.commit()
     return redirect(url_for('index'))
 
@@ -122,34 +131,17 @@ def delete_task(task_idx):
                 temp_tasks = [dict(r) for r in cur.fetchall()]
                 now_str = get_now_jst().strftime('%Y-%m-%dT%H:%M')
                 def task_sort(x):
-                    d = x['deadline']
-                    p = x.get('priority', 1)
+                    d, p = x['deadline'], x.get('priority', 1)
                     if d == "-": return (2, -p, "9999")
                     if d < now_str: return (0, -p, d)
                     return (1, -p, d)
                 temp_tasks.sort(key=task_sort)
-                
                 if 0 <= task_idx < len(temp_tasks):
                     target = temp_tasks[task_idx]
                     if session.get('role') == 'admin' or target['user'] == session['username']:
                         cur.execute('DELETE FROM tasks WHERE id = %s', (target['id'],))
             conn.commit()
     return redirect(url_for('index'))
-
-@app.route('/chat', methods=['GET', 'POST'])
-def chat():
-    if 'username' not in session: return redirect(url_for('login'))
-    with get_db() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            if request.method == 'POST':
-                message = request.form.get('message')
-                if message:
-                    cur.execute('INSERT INTO chat_messages (username, message, created_at) VALUES (%s, %s, %s)',
-                                 (session['username'], message, get_now_jst().strftime('%m/%d %H:%M')))
-                    conn.commit()
-            cur.execute('SELECT * FROM chat_messages ORDER BY id DESC LIMIT 50')
-            messages = cur.fetchall()
-    return render_template('chat.html', messages=messages, username=session['username'], role=session.get('role'))
 
 @app.route('/delete_chat/<int:msg_id>', methods=['POST'])
 def delete_chat(msg_id):
@@ -175,8 +167,7 @@ def login():
     if request.method == 'POST':
         with get_db() as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-                cur.execute('SELECT * FROM users WHERE username = %s AND password = %s',
-                             (request.form['username'], request.form['password']))
+                cur.execute('SELECT * FROM users WHERE username = %s AND password = %s', (request.form['username'], request.form['password']))
                 user = cur.fetchone()
                 if user:
                     session['username'], session['role'] = user['username'], user['role']
