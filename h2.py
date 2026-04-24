@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-# --- データベース設定（Renderの環境変数から読み込む） ---
+# --- データベース設定（Renderの環境変数 DATABASE_URL から読み込む） ---
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db():
@@ -83,12 +83,12 @@ def chat():
                     conn.commit()
                 return redirect(url_for('chat'))
 
-            # 全員宛(all)、自分が送信者、自分が受信者のいずれかのメッセージのみ取得
+            # 表示フィルタ：全員宛(all)、自分が送信(username)、自分が受信(receiver)をすべて取得
             cur.execute('SELECT * FROM chat_messages WHERE receiver = %s OR username = %s OR receiver = %s ORDER BY id DESC LIMIT 50', ('all', me, me))
             messages = cur.fetchall()
             
-            # 【重要】ここ：自分以外のユーザーを「宛先リスト」として取得
-            cur.execute('SELECT username FROM users WHERE username != %s', (me,))
+            # 宛先リスト用：自分とadmin以外の一般ユーザーを取得
+            cur.execute('SELECT username FROM users WHERE username != %s AND username != %s', (me, 'admin'))
             user_list = cur.fetchall()
             
     return render_template('chat.html', messages=messages, users=user_list, username=me, role=session.get('role'))
