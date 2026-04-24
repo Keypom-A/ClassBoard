@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-# --- データベース設定（Renderの環境変数 DATABASE_URL から読み込む） ---
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db():
@@ -59,8 +58,12 @@ def index():
 @app.route('/add', methods=['POST'])
 def add_task():
     if 'username' in session:
-        content, start, deadline = request.form['content'], request.form['start'] or "-", request.form['deadline'] or "-"
+        # get('priority', 1) とすることで、送られてこなくてもエラー(400)にならないようにします
+        content = request.form.get('content')
+        start = request.form.get('start') or "-"
+        deadline = request.form.get('deadline') or "-"
         priority = int(request.form.get('priority', 1))
+        
         if content:
             with get_db() as conn:
                 with conn.cursor() as cur:
@@ -83,11 +86,8 @@ def chat():
                     conn.commit()
                 return redirect(url_for('chat'))
 
-            # 表示フィルタ：全員宛(all)、自分が送信(username)、自分が受信(receiver)をすべて取得
             cur.execute('SELECT * FROM chat_messages WHERE receiver = %s OR username = %s OR receiver = %s ORDER BY id DESC LIMIT 50', ('all', me, me))
             messages = cur.fetchall()
-            
-            # 宛先リスト用：自分とadmin以外の一般ユーザーを取得
             cur.execute('SELECT username FROM users WHERE username != %s AND username != %s', (me, 'admin'))
             user_list = cur.fetchall()
             
