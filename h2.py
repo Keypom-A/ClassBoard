@@ -7,26 +7,28 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-# --- データベース設定（Neon） ---
-DATABASE_URL = "postgresql://neondb_owner:npg_SqsrO6RvnW5K@ep-super-bread-ao8t5vev.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+# --- データベース設定（Renderの環境変数から読み込む） ---
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db():
-    # PostgreSQLへの接続
     conn = psycopg2.connect(DATABASE_URL)
     return conn
 
-# テーブル作成用
 def init_db():
+    if not DATABASE_URL: return
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
             cur.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, start TEXT, deadline TEXT, created_at TIMESTAMP)')
             cur.execute('CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, username TEXT, message TEXT, created_at TEXT)')
-            # 初期adminの登録
+            # 優先度(priority)列がなければ追加
+            cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='tasks' AND column_name='priority'")
+            if not cur.fetchone():
+                cur.execute('ALTER TABLE tasks ADD COLUMN priority INTEGER DEFAULT 1') # 0:低, 1:中, 2:高
+            
             cur.execute('INSERT INTO users (username, password, role) VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING', ('admin', '1234', 'admin'))
         conn.commit()
 
-# 起動時にテーブルを自動準備
 init_db()
 
 def get_now_jst():
@@ -40,8 +42,7 @@ def index():
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             cur.execute('SELECT role FROM users WHERE username = %s', (session['username'],))
             user_data = cur.fetchone()
-            if user_data:
-                session['role'] = user_data['role']
+            if user_data: session['role'] = user_data['role']
             
             if session['username'] == 'admin':
                 session['role'] = 'admin'
@@ -49,19 +50,18 @@ def index():
 
             now_jst = get_now_jst()
             now_str = now_jst.strftime('%Y-%m-%dT%H:%M')
-            
-            # 7日経過削除
             limit_date = now_jst - timedelta(days=7)
             cur.execute('DELETE FROM tasks WHERE created_at < %s', (limit_date,))
-            
             cur.execute('SELECT * FROM tasks')
             tasks = [dict(r) for r in cur.fetchall()]
     
+    # 並び替え： 期限切れ(0) > 期限あり(1) > 期限なし(2) の中で「優先度(2>1>0)」順
     def sort_logic(x):
         d = x['deadline']
-        if d == "-": return (2, "9999")
-        if d < now_str: return (0, d)
-        return (1, d)
+        p = x.get('priority', 1)
+        if d == "-": return (2, -p, "9999")
+        if d < now_str: return (0, -p, d)
+        return (1, -p, d)
     tasks.sort(key=sort_logic)
     
     return render_template('index.html', tasks=tasks, username=session['username'], role=session['role'], now=now_str)
@@ -72,15 +72,17 @@ def add_task():
         content = request.form['content']
         start = request.form['start'] or "-"
         deadline = request.form['deadline'] or "-"
+        priority = int(request.form.get('priority', 1))
         created_at = get_now_jst()
         if content:
             with get_db() as conn:
                 with conn.cursor() as cur:
-                    cur.execute('INSERT INTO tasks ("user", content, start, deadline, created_at) VALUES (%s, %s, %s, %s, %s)',
-                                 (session['username'], content, start, deadline, created_at))
+                    cur.execute('INSERT INTO tasks ("user", content, start, deadline, created_at, priority) VALUES (%s, %s, %s, %s, %s, %s)',
+                                 (session['username'], content, start, deadline, created_at, priority))
                 conn.commit()
     return redirect(url_for('index'))
 
+# --- 他のルート(extend, delete, chat等)は変更なし ---
 @app.route('/extend/<int:task_idx>', methods=['POST'])
 def extend_task(task_idx):
     if 'username' in session:
@@ -89,7 +91,13 @@ def extend_task(task_idx):
                 cur.execute('SELECT * FROM tasks')
                 temp_tasks = [dict(r) for r in cur.fetchall()]
                 now_str = get_now_jst().strftime('%Y-%m-%dT%H:%M')
-                temp_tasks.sort(key=lambda x: (0, x['deadline']) if x['deadline'] != "-" and x['deadline'] < now_str else (1, x['deadline']) if x['deadline'] != "-" else (2, "9999"))
+                def task_sort(x):
+                    d = x['deadline']
+                    p = x.get('priority', 1)
+                    if d == "-": return (2, -p, "9999")
+                    if d < now_str: return (0, -p, d)
+                    return (1, -p, d)
+                temp_tasks.sort(key=task_sort)
                 
                 if 0 <= task_idx < len(temp_tasks):
                     target = temp_tasks[task_idx]
@@ -113,7 +121,13 @@ def delete_task(task_idx):
                 cur.execute('SELECT * FROM tasks')
                 temp_tasks = [dict(r) for r in cur.fetchall()]
                 now_str = get_now_jst().strftime('%Y-%m-%dT%H:%M')
-                temp_tasks.sort(key=lambda x: (0, x['deadline']) if x['deadline'] != "-" and x['deadline'] < now_str else (1, x['deadline']) if x['deadline'] != "-" else (2, "9999"))
+                def task_sort(x):
+                    d = x['deadline']
+                    p = x.get('priority', 1)
+                    if d == "-": return (2, -p, "9999")
+                    if d < now_str: return (0, -p, d)
+                    return (1, -p, d)
+                temp_tasks.sort(key=task_sort)
                 
                 if 0 <= task_idx < len(temp_tasks):
                     target = temp_tasks[task_idx]
