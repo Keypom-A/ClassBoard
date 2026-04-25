@@ -11,7 +11,7 @@
         .user-info { font-size: 0.9em; color: #666; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .form-section { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ddd; }
         .notice-section { background-color: #e3f2fd; border: 2px solid #2196f3; padding: 15px; border-radius: 10px; margin-bottom: 25px; }
-        .notice-item { background: white; padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 5px solid #2196f3; display: flex; justify-content: space-between; align-items: center; }
+        .notice-item { background: white; padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 5px solid #2196f3; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px 8px; text-align: left; }
         th { background: #3498db; color: white; }
@@ -23,6 +23,11 @@
         .admin-section { margin-top: 40px; padding: 20px; border: 2px dashed #e74c3c; border-radius: 10px; background-color: #fff5f5; }
         .expired { color: red; font-weight: bold; }
         input[type="text"], select { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; width: 95%; margin-bottom: 8px; }
+        
+        /* 添付ファイル用の追加スタイル */
+        .file-preview { max-width: 150px; max-height: 100px; border-radius: 4px; border: 1px solid #ddd; display: block; margin-top: 5px; }
+        .file-link { font-size: 0.8em; color: #007bff; text-decoration: none; display: block; margin-top: 5px; }
+        .file-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -44,7 +49,21 @@
             <h3 style="margin-top:0; color:#1976d2;">📢 先生からの連絡事項</h3>
             {% for n in notices %}
             <div class="notice-item">
-                <div><strong>{{ n.content }}</strong><br><small style="color:#888;">期限: {{ n.deadline | replace('T', ' ') }}</small></div>
+                <div style="flex:1;">
+                    <strong>{{ n.content }}</strong><br>
+                    <small style="color:#888;">期限: {{ n.deadline | replace('T', ' ') }}</small>
+                    
+                    {# お知らせの添付ファイル表示 #}
+                    {% if n.file_path %}
+                        {% if n.file_path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) %}
+                            <a href="{{ url_for('uploaded_file', filename=n.file_path) }}" target="_blank">
+                                <img src="{{ url_for('uploaded_file', filename=n.file_path) }}" class="file-preview" alt="画像">
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('uploaded_file', filename=n.file_path) }}" class="file-link" target="_blank">📎 添付資料を表示</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
                 {% if role in ['admin', 'teacher'] %}
                 <form action="/delete/{{ n.id }}" method="post"><button type="submit" class="btn btn-delete" style="padding:5px 10px;" onclick="return confirm('消しますか？')">削除</button></form>
                 {% endif %}
@@ -54,7 +73,8 @@
         {% endif %}
 
         <div class="form-section">
-            <form action="/add" method="post">
+            <!-- enctypeを追加 -->
+            <form action="/add" method="post" enctype="multipart/form-data">
                 <b>📝 {% if role == 'teacher' %}連絡事項を投稿{% else %}新しい投稿{% endif %}</b><br>
                 <input type="text" name="content" placeholder="内容" required>
                 重要度: 
@@ -63,7 +83,11 @@
                     <option value="1" selected>⭐ 中</option>
                     <option value="0">💤 低</option>
                 </select>
-                期限: <input type="datetime-local" name="deadline" style="width: auto;">
+                期限: <input type="datetime-local" name="deadline" style="width: auto;"><br>
+                
+                <label style="font-size: 0.9em; margin-top: 10px; display: inline-block;">
+                    📎 ファイル添付: <input type="file" name="file">
+                </label>
                 
                 {% if role in ['admin', 'teacher'] %}
                 <label style="margin-left:10px; color:#1976d2; font-weight:bold;">
@@ -77,12 +101,24 @@
 
         <h3>📅 みんなのタスク</h3>
         <table>
-            <thead><tr><th>投稿者</th><th>内容</th><th>期限</th><th>操作</th></tr></thead>
+            <thead><tr><th>投稿者</th><th>内容</th><th>添付</th><th>期限</th><th>操作</th></tr></thead>
             <tbody>
                 {% for task in tasks %}
                 <tr class="{% if task.deadline != '-' and task.deadline < now %}expired{% endif %}">
                     <td>{{ task.user }}</td>
                     <td>{% if task.priority == 2 %}🔥{% endif %} {{ task.content }}</td>
+                    <td>
+                        {# タスクの添付ファイル表示 #}
+                        {% if task.file_path %}
+                            {% if task.file_path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) %}
+                                <a href="{{ url_for('uploaded_file', filename=task.file_path) }}" target="_blank">🖼️ 画像</a>
+                            {% else %}
+                                <a href="{{ url_for('uploaded_file', filename=task.file_path) }}" target="_blank">📎 ﾌｧｲﾙ</a>
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                     <td>{{ task.deadline | replace('T', ' ') }}</td>
                     <td>
                         {% if role in ['admin', 'teacher'] or task.user == username %}
@@ -99,10 +135,7 @@
         <div class="admin-section">
             <h4 style="color: #e74c3c; margin-top: 0;">🔧 システム管理者ツール</h4>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <!-- ユーザー管理画面へのリンク。URLパスが /users であることを確認してください -->
                 <a href="/users" class="btn" style="background-color: #95a5a6; color: white;">👥 ユーザー一覧・権限変更</a>
-                
-                <!-- 全削除ボタン。h2.pyに /clear ルートがある場合に動作します -->
                 <form action="/clear" method="post">
                     <button type="submit" class="btn" style="background-color: #e74c3c; color: white;" onclick="return confirm('全てのタスクを消去します。よろしいですか？')">🗑 全タスク一括削除</button>
                 </form>
