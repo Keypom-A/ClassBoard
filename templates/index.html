@@ -9,37 +9,29 @@
         .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         .user-info { font-size: 0.9em; color: #666; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        
-        /* 📢 お知らせセクション（プリント配布掲示板） */
         .notice-section { background-color: #e3f2fd; border: 2px solid #2196f3; padding: 15px; border-radius: 10px; margin-bottom: 25px; }
         .notice-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #2196f3; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         
-        /* 📄 PDF/プリント用ダウンロードボタン（確実性を重視） */
-        .download-box {
-            display: inline-block; margin-top: 10px; padding: 15px 25px; 
-            background: #3498db; color: white !important; border-radius: 10px; 
-            text-align: center; text-decoration: none; font-weight: bold;
-            box-shadow: 0 4px 0 #2980b9; transition: 0.2s;
+        /* 📄 資料確認ボタンのデザイン */
+        .btn-view-doc {
+            display: block; width: 100%; max-width: 300px; margin: 15px auto 5px; padding: 15px;
+            background: #007bff; color: white !important; text-decoration: none; border-radius: 10px;
+            font-weight: bold; text-align: center; box-shadow: 0 4px 0 #0056b3; transition: 0.2s;
         }
-        .download-box:active { box-shadow: 0 0 0; transform: translateY(4px); }
-        .print-preview-img { max-width: 100%; width: 200px; border: 1px solid #ddd; border-radius: 5px; margin-top: 10px; display: block; }
+        .btn-view-doc:active { transform: translateY(3px); box-shadow: none; }
 
-        /* 📝 投稿フォーム */
         .form-section { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ddd; }
         input[type="text"], select, input[type="datetime-local"] { padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
-        
         .btn { padding: 10px 15px; border-radius: 8px; cursor: pointer; border: none; font-size: 14px; font-weight: bold; text-decoration: none; display: inline-block; text-align: center; }
-        .btn-add { background: #3498db; color: white; width: 100%; margin-top: 10px; font-size: 16px; }
+        .btn-add { background: #3498db; color: white; width: 100%; margin-top: 10px; }
         .btn-chat { background: #007bff; color: white; }
         .btn-delete { background: #f1c40f; color: #333; }
         .btn-refresh { background: #2ecc71; color: white; }
-
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px 8px; text-align: left; }
         th { background: #3498db; color: white; }
         .expired { color: #e74c3c; font-weight: bold; background: #fff5f5; }
-
-        @media (max-width: 600px) { .download-box { width: 100%; box-sizing: border-box; } }
+        @media (max-width: 600px) { .container { padding: 15px; } .btn-view-doc { max-width: 100%; } }
     </style>
 </head>
 <body>
@@ -47,15 +39,13 @@
         <div class="header-flex">
             <h1 style="margin:0; color:#2c3e50;">ClassBoard</h1>
             <div>
-                {% if role != 'teacher' %}
-                <a href="{{ url_for('chat') }}" class="btn btn-chat">💬 チャット</a>
-                {% endif %}
+                {% if role != 'teacher' %}<a href="{{ url_for('chat') }}" class="btn btn-chat">💬 チャット</a>{% endif %}
                 <a href="/" class="btn btn-refresh">🔄 更新</a>
             </div>
         </div>
         <div class="user-info">👤 <strong>{{ username }}</strong> ({{ role }}) | <a href="/logout" style="color:#e74c3c; text-decoration:none;">ログアウト</a></div>
 
-        <!-- 📢 お知らせ・プリント掲示板 -->
+        <!-- 📢 お知らせ・プリント配布 -->
         {% if notices %}
         <div class="notice-section">
             <h3 style="margin-top:0; color:#1976d2;">📢 先生からの連絡・プリント配布</h3>
@@ -67,22 +57,16 @@
                         <small style="color:#888;">期限: {{ n.deadline | replace('T', ' ') }}</small>
                     </div>
                     {% if role in ['admin', 'teacher'] %}
-                    <form action="/delete/{{ n.id }}" method="post"><button type="submit" class="btn btn-delete" style="padding:5px 10px;" onclick="return confirm('消去しますか？')">削除</button></form>
+                    <form action="/delete/{{ n.id }}" method="post"><button type="submit" class="btn btn-delete" onclick="return confirm('削除しますか？')">削除</button></form>
                     {% endif %}
                 </div>
 
-                {# 📄 ファイル表示（画像でもPDFでもとにかくボタンで開かせる） #}
+                {# 📄 資料確認ボタン（データがある時だけ表示） #}
                 {% if n.file_path %}
-                <div style="margin-top:10px;">
-                    {% if n.file_path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) %}
-                        <img src="{{ url_for('uploaded_file', filename=n.file_path) }}" class="print-preview-img">
-                    {% endif %}
-                    
-                    <a href="/uploads/{{ n.file_path }}" target="_blank" download class="download-box">
-                        📄 プリントを開く・ダウンロード
-                    </a>
-                    <p style="font-size: 0.7em; color: #666; margin-top: 5px;">※PDFが見れない場合はボタンを長押しして保存してください</p>
-                </div>
+                <a href="/uploads/{{ n.file_path }}" target="_blank" class="btn-view-doc">
+                    📄 資料(PDF/画像)を確認する
+                </a>
+                <p style="text-align:center; font-size:0.7em; color:#666; margin:0;">※別タブで開きます</p>
                 {% endif %}
             </div>
             {% endfor %}
@@ -92,34 +76,28 @@
         <!-- 📝 投稿フォーム -->
         <div class="form-section">
             <form action="/add" method="post" enctype="multipart/form-data">
-                <b style="display:block; margin-bottom:10px;">📝 {% if role == 'teacher' %}連絡・プリントを投稿{% else %}新しい予定{% endif %}</b>
-                <input type="text" name="content" placeholder="タイトル（例：学年だより4月号）" required>
-                
+                <b style="display:block; margin-bottom:10px;">📝 {% if role == 'teacher' %}プリント・連絡を投稿{% else %}新しい予定{% endif %}</b>
+                <input type="text" name="content" placeholder="タイトル（例：4月号学年だより）" required>
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 120px;">
-                        重要度: <select name="priority" style="margin-bottom:0;"><option value="2">🔥 高</option><option value="1" selected>⭐ 中</option><option value="0">低</option></select>
-                    </div>
-                    <div style="flex: 2; min-width: 200px;">
-                        期限: <input type="datetime-local" name="deadline" style="margin-bottom:0;">
-                    </div>
+                    <div style="flex: 1; min-width: 120px;">重要度: <select name="priority"><option value="2">🔥 高</option><option value="1" selected>⭐ 中</option><option value="0">低</option></select></div>
+                    <div style="flex: 2; min-width: 200px;">期限: <input type="datetime-local" name="deadline"></div>
                 </div>
 
                 {% if role in ['admin', 'teacher'] %}
                 <div style="margin-top: 15px; padding: 12px; background: #e3f2fd; border-radius: 8px; border: 1px solid #bbdefb;">
                     <label style="color:#1976d2; font-weight:bold; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" name="is_notice" id="noticeCheck" onchange="toggleFile()" {% if role == 'teacher' %}checked{% endif %}> 📢 連絡事項・プリントとして投稿
+                        <input type="checkbox" name="is_notice" id="noticeCheck" onchange="toggleFile()" {% if role == 'teacher' %}checked{% endif %}> 📢 連絡・プリントとして投稿
                     </label>
                     <div id="fileInputArea" style="margin-top: 10px; {% if role != 'teacher' %}display: none;{% endif %}">
-                        📎 添付ファイル(PDF/画像): <input type="file" name="file" accept=".pdf,image/*">
+                        📎 添付ファイル: <input type="file" name="file" accept=".pdf,image/*">
                     </div>
                 </div>
                 {% endif %}
-                
                 <button type="submit" class="btn btn-add">投稿する</button>
             </form>
         </div>
 
-        <h3>📅 みんなの予定・タスク</h3>
+        <!-- 📅 タスク一覧 -->
         <div style="overflow-x: auto;">
             <table>
                 <thead><tr><th>内容</th><th>期限</th><th>投稿者</th><th>操作</th></tr></thead>
@@ -129,18 +107,13 @@
                         <td>{% if task.priority == 2 %}🔥{% endif %} {{ task.content }}</td>
                         <td>{{ task.deadline | replace('T', ' ') }}</td>
                         <td>{{ task.user }}</td>
-                        <td>
-                            {% if role in ['admin', 'teacher'] or task.user == username %}
-                            <form action="/delete/{{ task.id }}" method="post"><button type="submit" class="btn btn-delete" style="padding:5px 8px; font-size:11px;">消去</button></form>
-                            {% endif %}
-                        </td>
+                        <td>{% if role in ['admin', 'teacher'] or task.user == username %}<form action="/delete/{{ task.id }}" method="post"><button type="submit" class="btn btn-delete" style="padding:5px 8px; font-size:11px;">消去</button></form>{% endif %}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-
     <script>
         function toggleFile() {
             const check = document.getElementById('noticeCheck');
