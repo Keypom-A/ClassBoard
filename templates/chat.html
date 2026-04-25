@@ -2,92 +2,65 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ClassBoard チャット</title>
     <style>
-     /* 画面全体：100vhの代わりに100dvh（Dynamic Viewport Height）を使用 */
-body, html { 
-    height: 100dvh; 
-    margin: 0; 
-    font-family: sans-serif; 
-    overflow: hidden; 
-}
-
-.layout { 
-    display: flex; 
-    height: 100dvh; /* ここもdvhに変更 */
-    width: 100vw; 
-    position: relative; 
-}
-
-/* メインチャット：高さを固定せず、コンテナ内で正しく配置 */
-.main-chat { 
-    flex: 1; 
-    min-width: 0; 
-    display: flex; 
-    flex-direction: column; 
-    background: #f0f2f5; 
-    height: 100%; /* 親のdvhを継承 */
-}
-
-/* 入力エリア：画面下部に確実に固定 */
-.chat-input-area { 
-    padding: 12px; 
-    background: #fff; 
-    border-top: 1px solid #ddd; 
-    flex-shrink: 0; /* キーボードが出ても縮まないように固定 */
-    z-index: 10;
-}
+        /* 画面全体の固定 */
+        body, html { height: 100dvh; margin: 0; font-family: sans-serif; overflow: hidden; background: #f0f2f5; }
+        .layout { display: flex; height: 100dvh; width: 100vw; position: relative; }
         
-        /* --- サイドバー：スマホでは隠す --- */
+        /* --- サイドバー --- */
         .sidebar {
             width: 240px; background: #fff; border-right: 1px solid #ddd;
             padding: 15px; overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column;
             transition: transform 0.3s ease; z-index: 1000;
         }
-        
-        .sidebar h3 { margin: 15px 0 10px 0; font-size: 0.9em; color: #888; letter-spacing: 1px; }
-        .sidebar a { display: block; padding: 12px; margin-bottom: 4px; text-decoration: none; color: #444; border-radius: 10px; font-weight: 500; font-size: 14px; }
+        .sidebar h3 { margin: 15px 0 10px 0; font-size: 0.85em; color: #999; letter-spacing: 1px; text-transform: uppercase; }
+        .sidebar a { 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; margin-bottom: 4px; text-decoration: none; color: #444; 
+            border-radius: 10px; font-weight: 500; font-size: 14px; transition: 0.2s;
+        }
+        .sidebar a:hover { background: #f0f4f8; }
         .sidebar .active { background: #007bff; color: white !important; }
         
+        /* 通知バッジ */
+        .badge-notify {
+            background: #ff4757; color: white; font-size: 10px; font-weight: bold;
+            min-width: 18px; height: 18px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+
         .group-ops { display: flex; gap: 4px; margin-bottom: 10px; }
-        .btn-op { flex: 1; font-size: 11px !important; text-align: center; padding: 8px 0 !important; background: #f8f9fa; border: 1px solid #eee; text-decoration: none; color: #444; border-radius: 8px; }
+        .btn-op { 
+            flex: 1; font-size: 11px !important; text-align: center; padding: 8px 0 !important; 
+            background: #f8f9fa; border: 1px solid #eee; text-decoration: none; color: #444; border-radius: 8px; 
+        }
 
         /* --- メインエリア --- */
         .main-chat { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #f0f2f5; position: relative; }
         .chat-header { padding: 10px 15px; background: #fff; border-bottom: 1px solid #ddd; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
         
-        /* ハンバーガーボタン（スマホのみ表示） */
-        .menu-btn {
-            display: none; background: #f0f2f5; border: none; font-size: 20px;
-            padding: 5px 10px; border-radius: 5px; cursor: pointer;
-        }
+        .menu-btn { display: none; background: #f0f2f5; border: none; font-size: 20px; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
 
         .chat-display { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column-reverse; }
         .message { margin-bottom: 12px; padding: 10px 15px; border-radius: 15px; background: #fff; max-width: 85%; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .my-msg { background: #dcf8c6; align-self: flex-end; }
         .user-name { font-weight: bold; font-size: 0.75em; color: #999; margin-bottom: 4px; }
         
-        .chat-input-area { padding: 12px; background: #fff; border-top: 1px solid #ddd; }
+        .chat-input-area { padding: 12px; background: #fff; border-top: 1px solid #ddd; flex-shrink: 0; }
         .input-row { display: flex; gap: 10px; align-items: center; }
-        input[type="text"] { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid #ddd; background: #f8f9fa; outline: none; }
+        .target-tag { font-size: 10px; font-weight: bold; color: white; background: #007bff; padding: 2px 6px; border-radius: 4px; }
+        
+        input[type="text"] { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ddd; background: #f8f9fa; outline: none; font-size: 16px; /* ズーム防止 */ }
         button.send { background: #007bff; color: white; border: none; padding: 8px 18px; border-radius: 20px; cursor: pointer; font-weight: bold; }
 
-        /* --- スマホ用メディアクエリ --- */
+        /* スマホ対応 */
         @media (max-width: 768px) {
-            .menu-btn { display: block; } /* ボタン表示 */
-            .sidebar {
-                position: absolute; left: 0; top: 0; bottom: 0;
-                transform: translateX(-100%); /* 画面外へ隠す */
-                box-shadow: 5px 0 15px rgba(0,0,0,0.1);
-            }
-            .sidebar.open { transform: translateX(0); } /* スッと出す */
-            
-            /* 背景を暗くする用 */
-            .overlay {
-                display: none; position: absolute; inset: 0;
-                background: rgba(0,0,0,0.3); z-index: 999;
-            }
+            .menu-btn { display: block; }
+            .sidebar { position: absolute; left: 0; top: 0; bottom: 0; transform: translateX(-100%); box-shadow: 5px 0 15px rgba(0,0,0,0.1); }
+            .sidebar.open { transform: translateX(0); }
+            .overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.3); z-index: 999; }
             .overlay.open { display: block; }
         }
     </style>
@@ -97,21 +70,30 @@ body, html {
         <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
         
         <div class="sidebar" id="sidebar">
-            <h3>CHAT MENU</h3>
-            <a href="/chat" class="{% if not partner and not group %}active{% endif %}">📢 全体</a>
+            <h3>Menu</h3>
+            <a href="/chat" class="chat-link {% if not partner and not group %}active{% endif %}" data-rx="all" data-lastid="{{ last_ids.get('all', 0) }}">
+                <span>📢 全体チャット</span>
+                <span class="badge-notify" style="display:none;">!</span>
+            </a>
             
-            <h3>GROUPS</h3>
+            <h3>Groups</h3>
             <div class="group-ops">
                 <a href="#" class="btn-op" onclick="createGroup()">🆕 作成</a>
                 <a href="#" class="btn-op" onclick="joinGroup()">🔑 参加</a>
             </div>
             {% for g in my_groups %}
-                <a href="/chat?group={{ g }}" class="{% if group == g %}active{% endif %}">🛡️ {{ g }}</a>
+                <a href="/chat?group={{ g }}" class="chat-link {% if group == g %}active{% endif %}" data-rx="grp_{{ g }}" data-lastid="{{ last_ids.get('grp_' + g, 0) }}">
+                    <span>🛡️ {{ g }}</span>
+                    <span class="badge-notify" style="display:none;">!</span>
+                </a>
             {% endfor %}
 
-            <h3>USERS</h3>
+            <h3>Users</h3>
             {% for u in users %}
-                <a href="/chat?user={{ u.username }}" class="{% if partner == u.username %}active{% endif %}">👤 {{ u.username }}</a>
+                <a href="/chat?user={{ u.username }}" class="chat-link {% if partner == u.username %}active{% endif %}" data-rx="{{ u.username }}" data-lastid="{{ last_ids.get(u.username, 0) }}">
+                    <span>👤 {{ u.username }}</span>
+                    <span class="badge-notify" style="display:none;">!</span>
+                </a>
             {% endfor %}
         </div>
 
@@ -119,16 +101,18 @@ body, html {
             <div class="chat-header">
                 <button class="menu-btn" onclick="toggleMenu()">≡</button>
                 <a href="/" style="text-decoration:none; color:#007bff; font-size:20px;">←</a>
-                <b style="flex:1; text-align:center;">{% if group %}{{ group }}{% elif partner %}{{ partner }}{% else %}全体チャット{% endif %}</b>
+                <b style="flex:1; text-align:center; font-size:0.9em;">
+                    {% if group %}🛡️ {{ group }}{% elif partner %}👤 {{ partner }}{% else %}📢 全体{% endif %}
+                </b>
             </div>
 
             <div class="chat-display" id="chatDisplay">
                 {% for msg in messages %}
                 <div class="message {% if msg.username == username %}my-msg{% endif %}">
-                    <div class="user-name">{{ msg.username }}</div>
+                    <div class="user-name">{{ msg.username }} <span style="font-weight:normal; color:#ccc; font-size:0.8em; margin-left:5px;">{{ msg.created_at }}</span></div>
                     <div style="word-break: break-all;">{{ msg.message }}</div>
                     {% if msg.file_path %}
-                        <div style="margin-top:5px;"><a href="{{ url_for('uploaded_file', filename=msg.file_path) }}" target="_blank" style="font-size:0.8em; color:#007bff;">📎 添付ファイル</a></div>
+                        <div style="margin-top:5px;"><a href="{{ url_for('uploaded_file', filename=msg.file_path) }}" target="_blank" style="font-size:0.8em; color:#007bff; text-decoration:none;">📎 ファイルを表示</a></div>
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -136,12 +120,19 @@ body, html {
 
             <div class="chat-input-area">
                 <form action="{{ url_for('chat', user=partner, group=group) }}" method="post" enctype="multipart/form-data" class="input-row">
-                    {% if group %}<input type="hidden" name="receiver" value="group"><input type="hidden" name="group_name" value="{{ group }}">
-                    {% elif partner %}<input type="hidden" name="receiver" value="{{ partner }}">
-                    {% else %}<input type="hidden" name="receiver" value="all">{% endif %}
+                    {% if group %}
+                        <input type="hidden" name="receiver" value="group"><input type="hidden" name="group_name" value="{{ group }}">
+                        <span class="target-tag" style="background:#2ecc71;">GRP</span>
+                    {% elif partner %}
+                        <input type="hidden" name="receiver" value="{{ partner }}">
+                        <span class="target-tag" style="background:#ff4757;">DM</span>
+                    {% else %}
+                        <input type="hidden" name="receiver" value="all">
+                        <span class="target-tag">ALL</span>
+                    {% endif %}
                     
-                    <label style="cursor:pointer; font-size:1.4em;">📎<input type="file" name="file" style="display:none;"></label>
-                    <input type="text" name="message" placeholder="メッセージ..." autocomplete="off">
+                    <label style="cursor:pointer; font-size:1.4em;">📎<input type="file" name="file" style="display:none;" onchange="this.parentElement.style.color='#007bff'"></label>
+                    <input type="text" name="message" placeholder="メッセージ..." autocomplete="off" required>
                     <button type="submit" class="send">送信</button>
                 </form>
             </div>
@@ -153,6 +144,31 @@ body, html {
             document.getElementById('sidebar').classList.toggle('open');
             document.getElementById('overlay').classList.toggle('open');
         }
+
+        // 既読管理ロジック
+        window.onload = function() {
+            let readData = JSON.parse(localStorage.getItem('read_ids') || "{}");
+            const currentRx = "{% if group %}grp_{{ group }}{% elif partner %}{{ partner }}{% else %}all{% endif %}";
+            
+            // 今開いているチャットの最新IDを既読として保存
+            const links = document.querySelectorAll('.chat-link');
+            links.forEach(link => {
+                const rx = link.dataset.rx;
+                const lastId = parseInt(link.dataset.lastid);
+                const badge = link.querySelector('.badge-notify');
+
+                if (rx === currentRx) {
+                    readData[rx] = lastId;
+                } else {
+                    // 保存されているIDより新しいメッセージがあれば「！」を表示
+                    if (lastId > (readData[rx] || 0)) {
+                        badge.style.display = 'inline-flex';
+                    }
+                }
+            });
+            localStorage.setItem('read_ids', JSON.stringify(readData));
+        };
+
         function createGroup() {
             const name = prompt("新しいグループの合言葉を決めてください");
             if (name) location.href = "/chat?group=" + encodeURIComponent(name);
@@ -170,16 +186,6 @@ body, html {
                 location.reload(); 
             }
         }, 5000);
-
-        // 入力欄にフォーカスが当たった時、少し待ってから最下部へスクロール
-const textInput = document.querySelector('input[name="message"]');
-textInput.addEventListener('focus', () => {
-    setTimeout(() => {
-        window.scrollTo(0, document.body.scrollHeight);
-        document.getElementById('chatDisplay').scrollTop = 0;
-    }, 300);
-});
-
     </script>
 </body>
 </html>
