@@ -24,7 +24,14 @@ def init_db():
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
-            cur.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, start TEXT, deadline TEXT, created_at TIMESTAMP, priority INTEGER DEFAULT 1, is_notice BOOLEAN DEFAULT FALSE)')
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS tasks (
+                    id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, 
+                    start TEXT, deadline TEXT, created_at TIMESTAMP, 
+                    priority INTEGER DEFAULT 1, is_notice BOOLEAN DEFAULT FALSE, 
+                    file_path TEXT
+                )
+            ''')
             cur.execute('CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, username TEXT, message TEXT, created_at TEXT, receiver TEXT DEFAULT \'all\', file_path TEXT)')
             cur.execute("INSERT INTO users (username, password, role) VALUES ('admin', '1234', 'admin') ON CONFLICT DO NOTHING")
         conn.commit()
@@ -68,20 +75,28 @@ def add_task():
     if 'username' not in session: return redirect(url_for('login'))
     role = session.get('role')
     is_notice = True if request.form.get('is_notice') == 'on' and role in ['admin', 'teacher'] else False
-    if role == 'teacher' and not is_notice: return "先生は一般タスクの投稿はできません。"
     
     content = request.form.get('content')
     start = request.form.get('start') or "-"
     deadline = request.form.get('deadline') or "-"
     priority = int(request.form.get('priority', 1))
+    
+    # --- お知らせ（プリント）投稿時のファイル処理 ---
+    file = request.files.get('file')
+    filename = None
+    if is_notice and file and file.filename != '':
+        # 拡張子を取得し、日本語ファイル名によるエラーを回避
+        ext = os.path.splitext(file.filename)[1]
+        filename = f"print_{get_now_jst().strftime('%Y%m%d%H%M%S')}{ext}"
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
     if content:
         with get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute('''
-                    INSERT INTO tasks ("user", content, start, deadline, created_at, priority, is_notice) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ''', (session['username'], content, start, deadline, get_now_jst(), priority, is_notice))
+                    INSERT INTO tasks ("user", content, start, deadline, created_at, priority, is_notice, file_path) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (session['username'], content, start, deadline, get_now_jst(), priority, is_notice, filename))
             conn.commit()
     return redirect(url_for('index'))
 
@@ -94,11 +109,9 @@ def chat():
     
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            # --- 通知バッジ用：各宛先の最新メッセージIDを取得 ---
             cur.execute("SELECT receiver, MAX(id) as last_id FROM chat_messages GROUP BY receiver")
             last_ids = {r['receiver']: r['last_id'] for r in cur.fetchall()}
 
-            # グループ一覧取得（過去に存在した全グループを表示）
             cur.execute("SELECT DISTINCT receiver FROM chat_messages WHERE receiver LIKE 'grp_%%'")
             my_groups = [r['receiver'].replace('grp_', '') for r in cur.fetchall()]
             if group and group not in my_groups: my_groups.append(group)
@@ -110,7 +123,8 @@ def chat():
                 file = request.files.get('file')
                 filename = None
                 if file and file.filename != '':
-                    filename = secure_filename(f"chat_{get_now_jst().strftime('%Y%m%d%H%M%S')}_{file.filename}")
+                    ext = os.path.splitext(file.filename)[1]
+                    filename = f"chat_{get_now_jst().strftime('%Y%m%d%H%M%S')}{ext}"
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 
                 final_rx = f"grp_{g_name}" if rx == "group" else rx
@@ -120,13 +134,9 @@ def chat():
                     conn.commit()
                 return redirect(url_for('chat', user=partner, group=group))
 
-            # メッセージ取得（他人のDMやグループが混ざらないよう厳密に分離）
-            if group:
-                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (f"grp_{group}",))
-            elif partner:
-                cur.execute('SELECT * FROM chat_messages WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) ORDER BY id DESC LIMIT 50', (me, partner, partner, me))
-            else:
-                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', ('all',))
+            if group: cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (f"grp_{group}",))
+            elif partner: cur.execute('SELECT * FROM chat_messages WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) ORDER BY id DESC LIMIT 50', (me, partner, partner, me))
+            else: cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', ('all',))
             
             messages = cur.fetchall()
             cur.execute('SELECT username FROM users WHERE username != %s ORDER BY username ASC', (me,))
@@ -135,8 +145,6 @@ def chat():
     return render_template('chat.html', messages=messages, users=user_list, my_groups=my_groups,
                            last_ids=last_ids, username=me, role=session.get('role'), 
                            partner=partner, group=group)
-
-# --- 以下、管理・認証系（省略せず維持） ---
 
 @app.route('/delete/<int:task_id>', methods=['POST'])
 def delete_task(task_id):
