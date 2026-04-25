@@ -46,7 +46,7 @@
     <a href="/chat" class="{% if not partner and not group %}active{% endif %}">📢 全体</a>
     
     <!-- 作成と参加を並べる -->
-    <div style="display: flex; gap: 5px;">
+   <div style="display: flex; gap: 5px;">
         <a href="#" class="btn-join" onclick="createGroup()" style="flex:1; background:#3498db;">🆕 作成</a>
         <a href="#" class="btn-join" onclick="joinGroup()" style="flex:1;">🔑 参加</a>
     </div>
@@ -115,12 +115,22 @@
 </div>
 
 <script>
-    function joinGroup() {
-        const name = prompt("参加するグループの合言葉を入力してください");
-        if (name) location.href = "/chat?group=" + name;
+    // グループ作成用
+    function createGroup() {
+        const name = prompt("新しいグループの「合言葉」を決めてください\n（例: 仲良し班、文化祭係 など）");
+        if (name) {
+            alert("グループ「" + name + "」へ移動します。\n仲間にこの合言葉を伝えてください。");
+            location.href = "/chat?group=" + encodeURIComponent(name);
+        }
     }
 
-    // 入力中やファイル選択中でなければ、5秒ごとに最新の状態へ更新
+    // グループ参加用
+    function joinGroup() {
+        const name = prompt("参加するグループの合言葉を入力してください");
+        if (name) location.href = "/chat?group=" + encodeURIComponent(name);
+    }
+
+    // 自動更新（入力中・ファイル選択中以外）
     let msgInput = document.querySelector('input[name="message"]');
     setInterval(function(){ 
         let fileInput = document.querySelector('input[name="file"]');
@@ -129,5 +139,6 @@
         }
     }, 5000);
 </script>
+
 </body>
 </html>
