@@ -120,9 +120,16 @@ def chat():
                 return redirect(url_for('chat', user=partner, group=group))
 
             # メッセージ取得
-            if group: cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (f"grp_{group}",))
-            elif partner: cur.execute('SELECT * FROM chat_messages WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) ORDER BY id DESC LIMIT 50', (me, partner, partner, me))
-            else: cur.execute('SELECT * FROM chat_messages WHERE receiver = %s OR username = %s OR receiver = %s ORDER BY id DESC LIMIT 50', ('all', me, me))
+           # --- メッセージ取得ロジックの修正 ---
+if group: 
+    # グループチャット：そのグループ宛てのみ
+    cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (f"grp_{group}",))
+elif partner: 
+    # DMモード：自分と相手の1対1のみ
+    cur.execute('SELECT * FROM chat_messages WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) ORDER BY id DESC LIMIT 50', (me, partner, partner, me))
+else: 
+    # 全体チャット：【重要】receiverが 'all' のものだけを取得するように変更
+    cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', ('all',))
             messages = cur.fetchall()
             
             cur.execute('SELECT username FROM users WHERE username != %s ORDER BY username ASC', (me,))
