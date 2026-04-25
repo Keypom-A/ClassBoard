@@ -63,21 +63,42 @@ def index():
     all_tasks.sort(key=sort_logic)
     return render_template('index.html', notices=notices, tasks=all_tasks, username=session['username'], role=session['role'], now=now_str)
 
+# --- init_db 内 ---
+# tasksテーブルに file_path カラムを追加（既存DBへの影響を考慮して IF NOT EXISTS 的に処理）
+# ※ psycopg2でカラム追加する場合は別途実行するか、手動でDB操作が必要な場合がありますが、
+# 以下の INSERT ロジックに合わせてカラムがある前提で進めます。
+
 @app.route('/add', methods=['POST'])
 def add_task():
     if 'username' not in session: return redirect(url_for('login'))
     role = session.get('role')
     is_notice = True if request.form.get('is_notice') == 'on' and role in ['admin', 'teacher'] else False
+    
     if role == 'teacher' and not is_notice: return "先生は一般タスクの投稿はできません。"
-    content, start, deadline = request.form.get('content'), request.form.get('start') or "-", request.form.get('deadline') or "-"
+    
+    content = request.form.get('content')
+    start = request.form.get('start') or "-"
+    deadline = request.form.get('deadline') or "-"
     priority = int(request.form.get('priority', 1))
+    
+    # --- ファイル処理の追加 ---
+    file = request.files.get('file')
+    filename = None
+    if file and file.filename != '':
+        filename = secure_filename(f"task_{get_now_jst().strftime('%Y%m%d%H%M%S')}_{file.filename}")
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
     if content:
         with get_db() as conn:
             with conn.cursor() as cur:
-                cur.execute('INSERT INTO tasks ("user", content, start, deadline, created_at, priority, is_notice) VALUES (%s, %s, %s, %s, %s, %s, %s)',
-                             (session['username'], content, start, deadline, get_now_jst(), priority, is_notice))
+                # file_path カラムに保存
+                cur.execute('''
+                    INSERT INTO tasks ("user", content, start, deadline, created_at, priority, is_notice, file_path) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (session['username'], content, start, deadline, get_now_jst(), priority, is_notice, filename))
             conn.commit()
     return redirect(url_for('index'))
+
 
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
