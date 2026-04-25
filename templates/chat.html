@@ -5,8 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ClassBoard チャット</title>
     <style>
-        body, html { height: 100%; margin: 0; font-family: sans-serif; overflow: hidden; }
-        .layout { display: flex; height: 100vh; width: 100vw; position: relative; }
+     /* 画面全体：100vhの代わりに100dvh（Dynamic Viewport Height）を使用 */
+body, html { 
+    height: 100dvh; 
+    margin: 0; 
+    font-family: sans-serif; 
+    overflow: hidden; 
+}
+
+.layout { 
+    display: flex; 
+    height: 100dvh; /* ここもdvhに変更 */
+    width: 100vw; 
+    position: relative; 
+}
+
+/* メインチャット：高さを固定せず、コンテナ内で正しく配置 */
+.main-chat { 
+    flex: 1; 
+    min-width: 0; 
+    display: flex; 
+    flex-direction: column; 
+    background: #f0f2f5; 
+    height: 100%; /* 親のdvhを継承 */
+}
+
+/* 入力エリア：画面下部に確実に固定 */
+.chat-input-area { 
+    padding: 12px; 
+    background: #fff; 
+    border-top: 1px solid #ddd; 
+    flex-shrink: 0; /* キーボードが出ても縮まないように固定 */
+    z-index: 10;
+}
         
         /* --- サイドバー：スマホでは隠す --- */
         .sidebar {
