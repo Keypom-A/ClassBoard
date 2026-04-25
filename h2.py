@@ -74,12 +74,7 @@ def add_task():
     start, deadline = request.form.get('start') or "-", request.form.get('deadline') or "-"
     priority = int(request.form.get('priority', 1))
     
-    file = request.files.get('file')
-    filename = None
-    if file and file.filename != '':
-        filename = secure_filename(f"task_{get_now_jst().strftime('%Y%m%d%H%M%S')}_{file.filename}")
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-
+   
     if content:
         with get_db() as conn:
             with conn.cursor() as cur:
