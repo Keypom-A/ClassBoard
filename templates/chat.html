@@ -41,18 +41,22 @@
     </style>
 </head>
 <body>
-<div class="layout">
-    <!-- サイドバー -->
-    <div class="sidebar">
-        <h3>📨 メッセージ</h3>
-        <a href="/chat" class="{% if not partner and not group %}active{% endif %}">📢 全体</a>
-        <a href="#" class="btn-join" onclick="joinGroup()">🔒 グループ参加</a>
-        {% if group %}<a href="/chat?group={{ group }}" class="active">🛡️ {{ group }}</a>{% endif %}
-        <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
-        {% for u in users %}
-            <a href="/chat?user={{ u.username }}" class="{% if partner == u.username %}active{% endif %}">👤 {{ u.username }}</a>
-        {% endfor %}
+<div class="sidebar">
+    <h3>📨 メッセージ</h3>
+    <a href="/chat" class="{% if not partner and not group %}active{% endif %}">📢 全体</a>
+    
+    <!-- 作成と参加を並べる -->
+    <div style="display: flex; gap: 5px;">
+        <a href="#" class="btn-join" onclick="createGroup()" style="flex:1; background:#3498db;">🆕 作成</a>
+        <a href="#" class="btn-join" onclick="joinGroup()" style="flex:1;">🔑 参加</a>
     </div>
+
+    {% if group %}
+        <a href="/chat?group={{ group }}" class="active">🛡️ {{ group }}</a>
+    {% endif %}
+    <!-- ... 以下、ユーザーリスト ... -->
+</div>
+
 
     <!-- メイン -->
     <div class="main-area">
