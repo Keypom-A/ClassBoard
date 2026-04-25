@@ -8,7 +8,6 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-# --- ファイル保存設定 ---
 UPLOAD_FOLDER = '/tmp/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
@@ -24,7 +23,7 @@ def init_db():
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
-            cur.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, start TEXT, deadline TEXT, created_at TIMESTAMP, priority INTEGER DEFAULT 1, is_notice BOOLEAN DEFAULT FALSE, file_path TEXT)')
+            cur.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, start TEXT, deadline TEXT, created_at TIMESTAMP, priority INTEGER DEFAULT 1, is_notice BOOLEAN DEFAULT FALSE)')
             cur.execute('CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, username TEXT, message TEXT, created_at TEXT, receiver TEXT DEFAULT \'all\', file_path TEXT)')
             cur.execute("INSERT INTO users (username, password, role) VALUES ('admin', '1234', 'admin') ON CONFLICT DO NOTHING")
         conn.commit()
@@ -49,12 +48,10 @@ def index():
             if session['username'] == 'admin': session['role'] = 'admin'
             now_jst = get_now_jst()
             now_str = now_jst.strftime('%Y-%m-%dT%H:%M')
-            
             cur.execute('SELECT * FROM tasks WHERE is_notice = TRUE ORDER BY created_at DESC')
             notices = [dict(r) for r in cur.fetchall()]
             cur.execute('SELECT * FROM tasks WHERE is_notice = FALSE')
             all_tasks = [dict(r) for r in cur.fetchall()]
-            
     def sort_logic(x):
         d, p = x['deadline'], x.get('priority', 1)
         if d == "-": return (2, -p, "9999")
@@ -69,17 +66,14 @@ def add_task():
     role = session.get('role')
     is_notice = True if request.form.get('is_notice') == 'on' and role in ['admin', 'teacher'] else False
     if role == 'teacher' and not is_notice: return "先生は一般タスクの投稿はできません。"
-    
     content = request.form.get('content')
     start, deadline = request.form.get('start') or "-", request.form.get('deadline') or "-"
     priority = int(request.form.get('priority', 1))
-    
-   
     if content:
         with get_db() as conn:
             with conn.cursor() as cur:
-                cur.execute('INSERT INTO tasks ("user", content, start, deadline, created_at, priority, is_notice, file_path) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
-                             (session['username'], content, start, deadline, get_now_jst(), priority, is_notice, filename))
+                cur.execute('INSERT INTO tasks ("user", content, start, deadline, created_at, priority, is_notice) VALUES (%s, %s, %s, %s, %s, %s, %s)',
+                             (session['username'], content, start, deadline, get_now_jst(), priority, is_notice))
             conn.commit()
     return redirect(url_for('index'))
 
@@ -89,21 +83,11 @@ def chat():
     if session.get('role') == 'teacher': return "先生はチャットを利用できません。"
     me = session['username']
     partner, group = request.args.get('user'), request.args.get('group')
-    
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            # --- グループ一覧の取得 (自分が関わったもの) ---
-            cur.execute('''
-                SELECT DISTINCT receiver FROM chat_messages 
-                WHERE receiver LIKE 'grp_%%' 
-                AND (username = %s OR receiver IN (SELECT DISTINCT receiver FROM chat_messages WHERE username = %s))
-            ''', (me, me))
+            cur.execute("SELECT DISTINCT receiver FROM chat_messages WHERE receiver LIKE 'grp_%%'")
             my_groups = [r['receiver'].replace('grp_', '') for r in cur.fetchall()]
-            
-            # 今アクセスしているグループがリストになければ「仮」で追加
-            if group and group not in my_groups:
-                my_groups.append(group)
-
+            if group and group not in my_groups: my_groups.append(group)
             if request.method == 'POST':
                 msg, rx, g_name = request.form.get('message'), request.form.get('receiver'), request.form.get('group_name')
                 file = request.files.get('file')
@@ -111,29 +95,24 @@ def chat():
                 if file and file.filename != '':
                     filename = secure_filename(f"chat_{get_now_jst().strftime('%Y%m%d%H%M%S')}_{file.filename}")
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                
                 final_rx = f"grp_{g_name}" if rx == "group" else rx
                 if msg or filename:
                     cur.execute('INSERT INTO chat_messages (username, message, created_at, receiver, file_path) VALUES (%s, %s, %s, %s, %s)',
                                  (me, msg, get_now_jst().strftime('%m/%d %H:%M'), final_rx, filename))
                     conn.commit()
                 return redirect(url_for('chat', user=partner, group=group))
-
-            # メッセージ取得
-           # --- メッセージ取得ロジックの修正 ---
-if group: 
-    # グループチャット：そのグループ宛てのみ
-    cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (f"grp_{group}",))
-elif partner: 
-    # DMモード：自分と相手の1対1のみ
-    cur.execute('SELECT * FROM chat_messages WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) ORDER BY id DESC LIMIT 50', (me, partner, partner, me))
-else: 
-    # 全体チャット：【重要】receiverが 'all' のものだけを取得するように変更
-    cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', ('all',))
+            if group:
+                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (f"grp_{group}",))
+            elif partner:
+                cur.execute('SELECT * FROM chat_messages WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) ORDER BY id DESC LIMIT 50', (me, partner, partner, me))
+            else:
+                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', ('all',))
+            
+            # ↓ここが133行目付近。上の if/elif/else と開始位置を揃えています
             messages = cur.fetchall()
+            
             cur.execute('SELECT username FROM users WHERE username != %s ORDER BY username ASC', (me,))
             user_list = [dict(u) for u in cur.fetchall()]
-            
     return render_template('chat.html', messages=messages, users=user_list, my_groups=my_groups,
                            username=me, role=session.get('role'), partner=partner, group=group)
 
@@ -208,4 +187,3 @@ def logout():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
