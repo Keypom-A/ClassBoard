@@ -68,14 +68,27 @@
                     {% endif %}
                 </div>
 
-                {% if n.file_path %}
-                <div style="margin-top:10px;">
-                    <a href="{{ url_for('uploaded_file', filename=n.file_path) }}" target="_blank">
-                        <img src="{{ url_for('uploaded_file', filename=n.file_path) }}" class="print-img" alt="プリント画像">
-                        <p style="font-size: 0.8em; color: #3498db; margin: 5px 0;">🔍 タップして全体を表示</p>
-                    </a>
-                </div>
-                {% endif %}
+            {% if n.file_path %}
+<div style="margin-top: 10px;">
+    {% if n.file_path.lower().endswith('.pdf') %}
+        <!-- PDFの場合：埋め込み表示（スマホでもクリックで開けます） -->
+        <div style="background: #f8f9fa; padding: 15px; border: 1px dashed #3498db; border-radius: 8px; text-align: center;">
+            <span style="font-size: 2em;">📄</span><br>
+            <a href="{{ url_for('uploaded_file', filename=n.file_path) }}" target="_blank" style="color: #007bff; font-weight: bold; text-decoration: none;">
+                PDFプリントを開く
+            </a>
+            <p style="font-size: 0.7em; color: #666; margin-top: 5px;">（タップすると別画面でPDFが開きます）</p>
+        </div>
+    {% else %}
+        <!-- 画像の場合：そのままプレビュー表示 -->
+        <a href="{{ url_for('uploaded_file', filename=n.file_path) }}" target="_blank">
+            <img src="{{ url_for('uploaded_file', filename=n.file_path) }}" 
+                 style="max-width: 100%; width: 250px; border: 1px solid #ddd; border-radius: 5px;">
+        </a>
+    {% endif %}
+</div>
+{% endif %}
+
             </div>
             {% endfor %}
         </div>
