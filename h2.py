@@ -17,9 +17,9 @@ def init_db():
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
-            cur.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, start TEXT, deadline TEXT, created_at TIMESTAMP, priority INTEGER DEFAULT 1)')
+            cur.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, start TEXT, deadline TEXT, created_at TIMESTAMP, priority INTEGER DEFAULT 1, is_notice BOOLEAN DEFAULT FALSE)')
             cur.execute('CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, username TEXT, message TEXT, created_at TEXT, receiver TEXT DEFAULT \'all\')')
-            cur.execute('INSERT INTO users (username, password, role) VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING', ('admin', '1234', 'admin'))
+            cur.execute("INSERT INTO users (username, password, role) VALUES ('admin', '1234', 'admin') ON CONFLICT DO NOTHING")
         conn.commit()
 
 init_db()
@@ -35,25 +35,30 @@ def index():
             cur.execute('SELECT role FROM users WHERE username = %s', (session['username'],))
             user_data = cur.fetchone()
             if user_data: session['role'] = user_data['role']
-            if session['username'] == 'admin':
-                session['role'] = 'admin'
-                cur.execute('UPDATE users SET role = %s WHERE username = %s', ('admin', 'admin'))
+            if session['username'] == 'admin': session['role'] = 'admin'
+
             now_jst = get_now_jst()
             now_str = now_jst.strftime('%Y-%m-%dT%H:%M')
-            cur.execute('DELETE FROM tasks WHERE created_at < %s', (now_jst - timedelta(days=7),))
-            cur.execute('SELECT * FROM tasks')
-            tasks = [dict(r) for r in cur.fetchall()]
-    
+            cur.execute('SELECT * FROM tasks WHERE is_notice = TRUE ORDER BY created_at DESC')
+            notices = [dict(r) for r in cur.fetchall()]
+            cur.execute('SELECT * FROM tasks WHERE is_notice = FALSE')
+            all_tasks = [dict(r) for r in cur.fetchall()]
+            
     def sort_logic(x):
         d, p = x['deadline'], x.get('priority', 1)
         if d == "-": return (2, -p, "9999")
         if d < now_str: return (0, -p, d)
         return (1, -p, d)
-    tasks.sort(key=sort_logic)
-    return render_template('index.html', tasks=tasks, username=session['username'], role=session['role'], now=now_str)
+    all_tasks.sort(key=sort_logic)
+    
+    return render_template('index.html', notices=notices, tasks=all_tasks, username=session['username'], role=session['role'], now=now_str)
 
 @app.route('/add', methods=['POST'])
 def add_task():
+    role = session.get('role')
+    is_notice = True if request.form.get('is_notice') == 'on' and role in ['admin', 'teacher'] else False
+    if role == 'teacher' and not is_notice: return "先生は一般タスクの投稿はできません。"
+
     if 'username' in session:
         content = request.form.get('content')
         start, deadline = request.form.get('start') or "-", request.form.get('deadline') or "-"
@@ -61,123 +66,51 @@ def add_task():
         if content:
             with get_db() as conn:
                 with conn.cursor() as cur:
-                    cur.execute('INSERT INTO tasks ("user", content, start, deadline, created_at, priority) VALUES (%s, %s, %s, %s, %s, %s)',
-                                 (session['username'], content, start, deadline, get_now_jst(), priority))
+                    cur.execute('INSERT INTO tasks ("user", content, start, deadline, created_at, priority, is_notice) VALUES (%s, %s, %s, %s, %s, %s, %s)',
+                                 (session['username'], content, start, deadline, get_now_jst(), priority, is_notice))
                 conn.commit()
     return redirect(url_for('index'))
 
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
     if 'username' not in session: return redirect(url_for('login'))
-    me = session['username']
-    partner = request.args.get('user')
-    group = request.args.get('group') # グループ名（合言葉）を取得
+    # 【追加】先生はチャットページそのものにアクセス不可
+    if session.get('role') == 'teacher': return "先生アカウントはチャット機能を利用できません。"
     
+    me = session['username']
+    partner, group = request.args.get('user'), request.args.get('group')
+
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             if request.method == 'POST':
-                msg = request.form.get('message')
-                rx = request.form.get('receiver')
-                group_name = request.form.get('group_name')
-                
-                # 宛先がグループなら、合言葉をreceiverにセット
-                if rx == "group" and group_name:
-                    final_rx = f"grp_{group_name}"
-                elif rx in ["admin", "管理者"]:
-                    final_rx = "admin"
-                else:
-                    final_rx = rx
-                
+                msg, rx, g_name = request.form.get('message'), request.form.get('receiver'), request.form.get('group_name')
+                final_rx = f"grp_{g_name}" if rx == "group" else ("admin" if rx in ["admin", "管理者"] else rx)
                 if msg:
                     cur.execute('INSERT INTO chat_messages (username, message, created_at, receiver) VALUES (%s, %s, %s, %s)',
                                  (me, msg, get_now_jst().strftime('%m/%d %H:%M'), final_rx))
                     conn.commit()
                 return redirect(url_for('chat', user=partner, group=group))
 
-            if group:
-                # グループチャットモード
-                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (f"grp_{group}",))
-            elif partner:
-                # DMモード
-                cur.execute('SELECT * FROM chat_messages WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) ORDER BY id DESC LIMIT 50', (me, partner, partner, me))
-            else:
-                # 全体チャットモード
-                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s OR username = %s OR receiver = %s ORDER BY id DESC LIMIT 50', ('all', me, me))
-            
+            if group: cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (f"grp_{group}",))
+            elif partner: cur.execute('SELECT * FROM chat_messages WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) ORDER BY id DESC LIMIT 50', (me, partner, partner, me))
+            else: cur.execute('SELECT * FROM chat_messages WHERE receiver = %s OR username = %s OR receiver = %s ORDER BY id DESC LIMIT 50', ('all', me, me))
             messages = cur.fetchall()
             cur.execute('SELECT username FROM users WHERE username != %s ORDER BY username ASC', (me,))
             user_list = [dict(u) for u in cur.fetchall()]
-            
     return render_template('chat.html', messages=messages, users=user_list, username=me, role=session.get('role'), partner=partner, group=group)
 
-# 他の管理ルート(extend, delete, delete_chat, update_role, login, register, users, clear, logout)は維持
-
-@app.route('/extend/<int:task_idx>', methods=['POST'])
-def extend_task(task_idx):
+@app.route('/delete/<int:task_id>', methods=['POST'])
+def delete_task(task_id):
     if 'username' in session:
-        with get_db() as conn:
-            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-                cur.execute('SELECT * FROM tasks')
-                temp_tasks = [dict(r) for r in cur.fetchall()]
-                now_str = get_now_jst().strftime('%Y-%m-%dT%H:%M')
-                def task_sort(x):
-                    d, p = x['deadline'], x.get('priority', 1)
-                    if d == "-": return (2, -p, "9999")
-                    if d < now_str: return (0, -p, d)
-                    return (1, -p, d)
-                temp_tasks.sort(key=task_sort)
-                if 0 <= task_idx < len(temp_tasks):
-                    target = temp_tasks[task_idx]
-                    if session.get('role') == 'admin' or target['user'] == session['username']:
-                        new_dl = "-"
-                        if target['deadline'] != "-":
-                            try:
-                                curr = datetime.strptime(target['deadline'], '%Y-%m-%dT%H:%M')
-                                new_dl = (curr + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M')
-                            except: pass
-                        cur.execute('UPDATE tasks SET deadline = %s, created_at = %s WHERE id = %s', (new_dl, get_now_jst(), target['id']))
-            conn.commit()
-    return redirect(url_for('index'))
-
-@app.route('/delete/<int:task_idx>', methods=['POST'])
-def delete_task(task_idx):
-    if 'username' in session:
-        with get_db() as conn:
-            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-                cur.execute('SELECT * FROM tasks')
-                temp_tasks = [dict(r) for r in cur.fetchall()]
-                now_str = get_now_jst().strftime('%Y-%m-%dT%H:%M')
-                def task_sort(x):
-                    d, p = x['deadline'], x.get('priority', 1)
-                    if d == "-": return (2, -p, "9999")
-                    if d < now_str: return (0, -p, d)
-                    return (1, -p, d)
-                temp_tasks.sort(key=task_sort)
-                if 0 <= task_idx < len(temp_tasks):
-                    target = temp_tasks[task_idx]
-                    if session.get('role') == 'admin' or target['user'] == session['username']:
-                        cur.execute('DELETE FROM tasks WHERE id = %s', (target['id'],))
-            conn.commit()
-    return redirect(url_for('index'))
-
-@app.route('/delete_chat/<int:msg_id>', methods=['POST'])
-def delete_chat(msg_id):
-    if session.get('role') == 'admin':
+        role = session.get('role')
         with get_db() as conn:
             with conn.cursor() as cur:
-                cur.execute('DELETE FROM chat_messages WHERE id = %s', (msg_id,))
+                if role in ['admin', 'teacher']:
+                    cur.execute('DELETE FROM tasks WHERE id = %s', (task_id,))
+                else:
+                    cur.execute('DELETE FROM tasks WHERE id = %s AND "user" = %s', (task_id, session['username']))
             conn.commit()
-    return redirect(url_for('chat'))
-
-@app.route('/update_role/<target_user>', methods=['POST'])
-def update_role(target_user):
-    if session.get('role') == 'admin':
-        new_role = request.form['new_role']
-        with get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute('UPDATE users SET role = %s WHERE username = %s', (new_role, target_user))
-            conn.commit()
-    return redirect(url_for('user_list'))
+    return redirect(url_for('index'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -202,24 +135,6 @@ def register():
             return redirect(url_for('login'))
         except: return "既に使われている名前です"
     return render_template('register.html')
-
-@app.route('/users')
-def user_list():
-    if session.get('role') != 'admin': return "権限なし"
-    with get_db() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute('SELECT * FROM users ORDER BY username ASC')
-            users = cur.fetchall()
-    return render_template('users.html', users=users, username=session['username'])
-
-@app.route('/clear', methods=['POST'])
-def clear_tasks():
-    if session.get('role') == 'admin':
-        with get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute('DELETE FROM tasks')
-            conn.commit()
-    return redirect(url_for('index'))
 
 @app.route('/logout')
 def logout():
