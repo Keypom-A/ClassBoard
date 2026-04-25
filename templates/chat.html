@@ -170,6 +170,16 @@ body, html {
                 location.reload(); 
             }
         }, 5000);
+
+        // 入力欄にフォーカスが当たった時、少し待ってから最下部へスクロール
+const textInput = document.querySelector('input[name="message"]');
+textInput.addEventListener('focus', () => {
+    setTimeout(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+        document.getElementById('chatDisplay').scrollTop = 0;
+    }, 300);
+});
+
     </script>
 </body>
 </html>
