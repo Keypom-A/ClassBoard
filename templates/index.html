@@ -7,19 +7,22 @@
     <style>
         body { font-family: sans-serif; margin: 0; padding: 15px; background: #f0f4f8; }
         .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         .user-info { font-size: 0.9em; color: #666; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .form-section { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ddd; }
         .notice-section { background-color: #e3f2fd; border: 2px solid #2196f3; padding: 15px; border-radius: 10px; margin-bottom: 25px; }
-        .notice-item { background: white; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 5px solid #2196f3; display: flex; justify-content: space-between; align-items: center; }
+        .notice-item { background: white; padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 5px solid #2196f3; display: flex; justify-content: space-between; align-items: center; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px 8px; text-align: left; }
         th { background: #3498db; color: white; }
-        .btn { padding: 8px 15px; border-radius: 6px; cursor: pointer; border: none; font-size: 14px; font-weight: bold; text-decoration: none; display: inline-block; }
+        .btn { padding: 8px 15px; border-radius: 6px; cursor: pointer; border: none; font-size: 14px; font-weight: bold; text-decoration: none; display: inline-block; text-align: center; }
         .btn-add { background: #3498db; color: white; width: 100%; margin-top: 10px; }
         .btn-chat { background: #007bff; color: white; }
         .btn-delete { background: #f1c40f; color: #333; }
+        .btn-refresh { background: #2ecc71; color: white; }
+        .admin-section { margin-top: 40px; padding: 20px; border: 2px dashed #e74c3c; border-radius: 10px; background-color: #fff5f5; }
         .expired { color: red; font-weight: bold; }
+        input[type="text"], select { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; width: 95%; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -27,24 +30,23 @@
         <div class="header-flex">
             <h1 style="margin:0;">ClassBoard</h1>
             <div>
-                <!-- 【修正】先生(teacher)以外にだけチャットボタンを表示 -->
                 {% if role != 'teacher' %}
                 <a href="{{ url_for('chat') }}" class="btn btn-chat">💬 チャット</a>
                 {% endif %}
-                <a href="/" class="btn" style="background:#2ecc71; color:white;">🔄 更新</a>
+                <a href="/" class="btn btn-refresh">🔄 更新</a>
             </div>
         </div>
-        <div class="user-info">👤 <strong>{{ username }}</strong> (権限: {{ role }}) | <a href="/logout">ログアウト</a></div>
+        <div class="user-info">👤 <strong>{{ username }}</strong> ({{ role }}) | <a href="/logout" style="color:#e74c3c;">ログアウト</a></div>
 
-        <!-- 先生からの連絡事項 -->
+        <!-- 📢 先生からの連絡事項 -->
         {% if notices %}
         <div class="notice-section">
             <h3 style="margin-top:0; color:#1976d2;">📢 先生からの連絡事項</h3>
             {% for n in notices %}
             <div class="notice-item">
-                <div><strong>{{ n.content }}</strong><br><small>期限: {{ n.deadline | replace('T', ' ') }}</small></div>
+                <div><strong>{{ n.content }}</strong><br><small style="color:#888;">期限: {{ n.deadline | replace('T', ' ') }}</small></div>
                 {% if role in ['admin', 'teacher'] %}
-                <form action="/delete/{{ n.id }}" method="post"><button type="submit" class="btn btn-delete" onclick="return confirm('消しますか？')">削除</button></form>
+                <form action="/delete/{{ n.id }}" method="post"><button type="submit" class="btn btn-delete" style="padding:5px 10px;" onclick="return confirm('消しますか？')">削除</button></form>
                 {% endif %}
             </div>
             {% endfor %}
@@ -54,13 +56,14 @@
         <div class="form-section">
             <form action="/add" method="post">
                 <b>📝 {% if role == 'teacher' %}連絡事項を投稿{% else %}新しい投稿{% endif %}</b><br>
-                <input type="text" name="content" placeholder="内容" required style="width: 95%; padding: 10px; margin-bottom: 10px;">
-                重要度: <select name="priority">
+                <input type="text" name="content" placeholder="内容" required>
+                重要度: 
+                <select name="priority" style="width: auto;">
                     <option value="2">🔥 高</option>
                     <option value="1" selected>⭐ 中</option>
                     <option value="0">💤 低</option>
                 </select>
-                期限: <input type="datetime-local" name="deadline">
+                期限: <input type="datetime-local" name="deadline" style="width: auto;">
                 
                 {% if role in ['admin', 'teacher'] %}
                 <label style="margin-left:10px; color:#1976d2; font-weight:bold;">
@@ -83,14 +86,29 @@
                     <td>{{ task.deadline | replace('T', ' ') }}</td>
                     <td>
                         {% if role in ['admin', 'teacher'] or task.user == username %}
-                        <form action="/delete/{{ task.id }}" method="post"><button type="submit" class="btn btn-delete">消去</button></form>
+                        <form action="/delete/{{ task.id }}" method="post"><button type="submit" class="btn btn-delete" style="padding:5px 8px; font-size:11px;">消去</button></form>
                         {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+
+        <!-- 🔧 管理者ツール（adminの時だけ表示） -->
+        {% if role == 'admin' %}
+        <div class="admin-section">
+            <h4 style="color: #e74c3c; margin-top: 0;">🔧 システム管理者ツール</h4>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <!-- ユーザー管理画面へのリンク。URLパスが /users であることを確認してください -->
+                <a href="/users" class="btn" style="background-color: #95a5a6; color: white;">👥 ユーザー一覧・権限変更</a>
+                
+                <!-- 全削除ボタン。h2.pyに /clear ルートがある場合に動作します -->
+                <form action="/clear" method="post">
+                    <button type="submit" class="btn" style="background-color: #e74c3c; color: white;" onclick="return confirm('全てのタスクを消去します。よろしいですか？')">🗑 全タスク一括削除</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </body>
 </html>
-
