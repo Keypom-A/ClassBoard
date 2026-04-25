@@ -131,7 +131,6 @@ else:
     # 全体チャット：【重要】receiverが 'all' のものだけを取得するように変更
     cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', ('all',))
             messages = cur.fetchall()
-            
             cur.execute('SELECT username FROM users WHERE username != %s ORDER BY username ASC', (me,))
             user_list = [dict(u) for u in cur.fetchall()]
             
