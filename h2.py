@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
+# --- データベース設定（Renderの環境変数 DATABASE_URL から読み込む） ---
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db():
@@ -58,12 +59,10 @@ def index():
 @app.route('/add', methods=['POST'])
 def add_task():
     if 'username' in session:
-        # get('priority', 1) とすることで、送られてこなくてもエラー(400)にならないようにします
         content = request.form.get('content')
         start = request.form.get('start') or "-"
         deadline = request.form.get('deadline') or "-"
         priority = int(request.form.get('priority', 1))
-        
         if content:
             with get_db() as conn:
                 with conn.cursor() as cur:
@@ -76,22 +75,46 @@ def add_task():
 def chat():
     if 'username' not in session: return redirect(url_for('login'))
     me = session['username']
+    partner = request.args.get('user') # URLパラメータからDM相手を取得
+    
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             if request.method == 'POST':
-                msg, rx = request.form.get('message'), request.form.get('receiver', 'all')
+                msg = request.form.get('message')
+                rx = request.form.get('receiver', 'all')
+                # 送信先が「admin」または「管理者」という名前なら内部的にadminに統一
+                if rx in ["admin", "管理者"]: rx = "admin"
+                
                 if msg:
                     cur.execute('INSERT INTO chat_messages (username, message, created_at, receiver) VALUES (%s, %s, %s, %s)',
                                  (me, msg, get_now_jst().strftime('%m/%d %H:%M'), rx))
                     conn.commit()
-                return redirect(url_for('chat'))
+                # 送信後は元のチャット相手の画面を維持
+                return redirect(url_for('chat', user=partner if partner else None))
 
-            cur.execute('SELECT * FROM chat_messages WHERE receiver = %s OR username = %s OR receiver = %s ORDER BY id DESC LIMIT 50', ('all', me, me))
-            messages = cur.fetchall()
-            cur.execute('SELECT username FROM users WHERE username != %s AND username != %s', (me, 'admin'))
-            user_list = cur.fetchall()
+            # 表示メッセージの取得
+            if partner:
+                # DMモード：自分と相手の1対1のやり取りのみ
+                cur.execute('''
+                    SELECT * FROM chat_messages 
+                    WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) 
+                    ORDER BY id DESC LIMIT 50
+                ''', (me, partner, partner, me))
+            else:
+                # 全体チャットモード：全員宛 or 自分に関係あるもの
+                cur.execute('''
+                    SELECT * FROM chat_messages 
+                    WHERE receiver = %s OR username = %s OR receiver = %s 
+                    ORDER BY id DESC LIMIT 50
+                ''', ('all', me, me))
             
-    return render_template('chat.html', messages=messages, users=user_list, username=me, role=session.get('role'))
+            messages = cur.fetchall()
+            
+            # サイドバー用ユーザーリスト：自分以外の全員
+            cur.execute('SELECT username FROM users WHERE username != %s ORDER BY username ASC', (me,))
+            user_list = [dict(u) for u in cur.fetchall()]
+            
+    return render_template('chat.html', messages=messages, users=user_list, username=me, role=session.get('role'), partner=partner)
 
 @app.route('/extend/<int:task_idx>', methods=['POST'])
 def extend_task(task_idx):
@@ -189,7 +212,7 @@ def user_list():
     if session.get('role') != 'admin': return "権限なし"
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute('SELECT * FROM users')
+            cur.execute('SELECT * FROM users ORDER BY username ASC')
             users = cur.fetchall()
     return render_template('users.html', users=users, username=session['username'])
 
