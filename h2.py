@@ -7,12 +7,10 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-# --- データベース設定（Renderの環境変数 DATABASE_URL から読み込む） ---
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db():
-    conn = psycopg2.connect(DATABASE_URL)
-    return conn
+    return psycopg2.connect(DATABASE_URL)
 
 def init_db():
     if not DATABASE_URL: return
@@ -40,11 +38,9 @@ def index():
             if session['username'] == 'admin':
                 session['role'] = 'admin'
                 cur.execute('UPDATE users SET role = %s WHERE username = %s', ('admin', 'admin'))
-            
             now_jst = get_now_jst()
             now_str = now_jst.strftime('%Y-%m-%dT%H:%M')
-            limit_date = now_jst - timedelta(days=7)
-            cur.execute('DELETE FROM tasks WHERE created_at < %s', (limit_date,))
+            cur.execute('DELETE FROM tasks WHERE created_at < %s', (now_jst - timedelta(days=7),))
             cur.execute('SELECT * FROM tasks')
             tasks = [dict(r) for r in cur.fetchall()]
     
@@ -60,8 +56,7 @@ def index():
 def add_task():
     if 'username' in session:
         content = request.form.get('content')
-        start = request.form.get('start') or "-"
-        deadline = request.form.get('deadline') or "-"
+        start, deadline = request.form.get('start') or "-", request.form.get('deadline') or "-"
         priority = int(request.form.get('priority', 1))
         if content:
             with get_db() as conn:
@@ -75,46 +70,47 @@ def add_task():
 def chat():
     if 'username' not in session: return redirect(url_for('login'))
     me = session['username']
-    partner = request.args.get('user') # URLパラメータからDM相手を取得
+    partner = request.args.get('user')
+    group = request.args.get('group') # グループ名（合言葉）を取得
     
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             if request.method == 'POST':
                 msg = request.form.get('message')
-                rx = request.form.get('receiver', 'all')
-                # 送信先が「admin」または「管理者」という名前なら内部的にadminに統一
-                if rx in ["admin", "管理者"]: rx = "admin"
+                rx = request.form.get('receiver')
+                group_name = request.form.get('group_name')
+                
+                # 宛先がグループなら、合言葉をreceiverにセット
+                if rx == "group" and group_name:
+                    final_rx = f"grp_{group_name}"
+                elif rx in ["admin", "管理者"]:
+                    final_rx = "admin"
+                else:
+                    final_rx = rx
                 
                 if msg:
                     cur.execute('INSERT INTO chat_messages (username, message, created_at, receiver) VALUES (%s, %s, %s, %s)',
-                                 (me, msg, get_now_jst().strftime('%m/%d %H:%M'), rx))
+                                 (me, msg, get_now_jst().strftime('%m/%d %H:%M'), final_rx))
                     conn.commit()
-                # 送信後は元のチャット相手の画面を維持
-                return redirect(url_for('chat', user=partner if partner else None))
+                return redirect(url_for('chat', user=partner, group=group))
 
-            # 表示メッセージの取得
-            if partner:
-                # DMモード：自分と相手の1対1のやり取りのみ
-                cur.execute('''
-                    SELECT * FROM chat_messages 
-                    WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) 
-                    ORDER BY id DESC LIMIT 50
-                ''', (me, partner, partner, me))
+            if group:
+                # グループチャットモード
+                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (f"grp_{group}",))
+            elif partner:
+                # DMモード
+                cur.execute('SELECT * FROM chat_messages WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) ORDER BY id DESC LIMIT 50', (me, partner, partner, me))
             else:
-                # 全体チャットモード：全員宛 or 自分に関係あるもの
-                cur.execute('''
-                    SELECT * FROM chat_messages 
-                    WHERE receiver = %s OR username = %s OR receiver = %s 
-                    ORDER BY id DESC LIMIT 50
-                ''', ('all', me, me))
+                # 全体チャットモード
+                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s OR username = %s OR receiver = %s ORDER BY id DESC LIMIT 50', ('all', me, me))
             
             messages = cur.fetchall()
-            
-            # サイドバー用ユーザーリスト：自分以外の全員
             cur.execute('SELECT username FROM users WHERE username != %s ORDER BY username ASC', (me,))
             user_list = [dict(u) for u in cur.fetchall()]
             
-    return render_template('chat.html', messages=messages, users=user_list, username=me, role=session.get('role'), partner=partner)
+    return render_template('chat.html', messages=messages, users=user_list, username=me, role=session.get('role'), partner=partner, group=group)
+
+# 他の管理ルート(extend, delete, delete_chat, update_role, login, register, users, clear, logout)は維持
 
 @app.route('/extend/<int:task_idx>', methods=['POST'])
 def extend_task(task_idx):
