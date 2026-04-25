@@ -64,11 +64,21 @@
             <a href="/chat?group={{ group }}" class="active">🛡️ {{ group }}</a>
         {% endif %}
 
-        <h3 style="margin-top:20px;">DIRECT MESSAGES</h3>
-        {% for u in users %}
-            <a href="/chat?user={{ u.username }}" class="{% if partner == u.username %}active{% endif %}">👤 {{ u.username }}</a>
-        {% endfor %}
-    </div>
+       <!-- chat.html サイドバー部分 -->
+<h3 style="margin-top:20px;">GROUPS</h3>
+<div class="group-ops">
+    <a href="#" class="btn-op" onclick="createGroup()">🆕 作成</a>
+    <a href="#" class="btn-op" onclick="joinGroup()">🔑 参加</a>
+</div>
+
+<div id="groupList">
+    {% for g in my_groups %}
+        <a href="/chat?group={{ g }}" class="{% if group == g %}active{% endif %}" data-group="{{ g }}">
+            🛡️ {{ g }}
+        </a>
+    {% endfor %}
+</div>
+
 
     <!-- 📱 メインチャット -->
     <div class="main-area">
