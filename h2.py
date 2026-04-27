@@ -112,6 +112,42 @@ def chat():
             cur.execute("SELECT DISTINCT receiver FROM chat_messages WHERE receiver LIKE 'grp_%%'")
             my_groups = [r['receiver'].replace('grp_', '') for r in cur.fetchall()]
             if group and group not in my_groups: my_groups.append(group)
+                  if request.method == 'POST':
+        message = request.form.get('message', '')
+        file = request.files.get('file')
+        file_url = None
+
+        # 1. ファイルがあればCloudinaryにアップロード
+        if file and file.filename != '':
+            try:
+                # 画像でもPDFでも自動判別してアップ
+                upload_result = cloudinary.uploader.upload(file, resource_type="auto")
+                file_url = upload_result.get('secure_url')
+            except Exception as e:
+                print(f"Upload error: {e}")
+
+        # 2. データベースに保存
+        # ファイルがある場合は、メッセージの末尾にURLを足すか、
+        # もしDBにfile_url列があるならそこに入れる形に調整してください
+        target = f"grp_{group}" if group else partner
+        if message or file_url:
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    # ここでは一旦、本文(content)にURLを合体させる例にします
+                    final_content = message
+                    if file_url:
+                        # 本文が空でなければ改行してURLを追加
+                        final_content += f"\n{file_url}" if message else file_url
+                    
+                    cur.execute(
+                        "INSERT INTO chat_messages (sender, receiver, content) VALUES (%s, %s, %s)",
+                        (me, target, final_content)
+                    )
+                conn.commit()
+        return redirect(url_for('chat', user=partner, group=group))
+
+    # ここから下はGET（表示用）の既存処理...
+
 
             if request.method == 'POST':
                 msg = request.form.get('message')
