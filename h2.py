@@ -145,7 +145,7 @@ def chat():
                 target = f"grp_{group}" if group else (partner if partner else "all")
                 
                 # 文字列に変換した現在時刻
-                now_str = get_now_jst().strftime('%Y-%m-%d %H:%M:%S')
+                now_str = get_now_jst().strftime('%m/%d %H:%M)
 
                 if msg_content or file_url:
                     try:
@@ -162,31 +162,31 @@ def chat():
                 return redirect(url_for('chat', user=partner, group=group))
 
 
-            # --- GET: メッセージ表示用データ取得 ---
+                     # --- GET: メッセージ表示用データ取得 ---
             target = f"grp_{group}" if group else (partner if partner else "all")
             
-            # 全てのカラムを取得して、後で安全に処理
             if target == "all" or target.startswith("grp_"):
-                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id ASC LIMIT 50', (target,))
+                # 最新の50件を取得
+                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (target,))
             else:
+                # me と partner のやり取りを username カラムで検索
                 cur.execute('''
                     SELECT * FROM chat_messages 
                     WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s)
-                    OR (sender = %s AND receiver = %s) OR (sender = %s AND receiver = %s)
-                    ORDER BY id ASC LIMIT 50
-                ''', (me, target, target, me, me, target, target, me))
+                    ORDER BY id DESC LIMIT 50
+                ''', (me, target, target, me))
             
+            # DESC（新しい順）で取得したので、画面表示用に reversed で古い順（下が最新）に戻す
             raw_messages = cur.fetchall()
-            
-            # HTMLが期待するキー名 (username, message, created_at) に統一して変換
             messages = []
-            for m in raw_messages:
+            for m in reversed(raw_messages):
                 messages.append({
                     'username': m.get('username') or m.get('sender', 'Unknown'),
                     'message': m.get('message') or m.get('content', ''),
                     'file_path': m.get('file_path'),
                     'created_at': m.get('created_at', '')
                 })
+
 
     return render_template('chat.html', 
                            messages=messages, 
