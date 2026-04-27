@@ -145,7 +145,7 @@ def chat():
                 target = f"grp_{group}" if group else (partner if partner else "all")
                 
                 # 文字列に変換した現在時刻
-                now_str = get_now_jst().strftime('%m/%d %H:%M)
+                now_str = get_now_jst().strftime('%m/%d %H:%M')
 
                 if msg_content or file_url:
                     try:
