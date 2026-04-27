@@ -1,18 +1,21 @@
 import os
 import psycopg2
 import psycopg2.extras
-from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session
 from datetime import datetime, timedelta
-from werkzeug.utils import secure_filename
+import cloudinary
+import cloudinary.uploader
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-# --- ファイル保存設定 ---
-UPLOAD_FOLDER = '/tmp/uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# --- Cloudinary 設定 ---
+# RenderのEnvironmentに登録した変数から読み込みます
+cloudinary.config(
+  cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'),
+  api_key = os.environ.get('CLOUDINARY_API_KEY'),
+  api_secret = os.environ.get('CLOUDINARY_API_SECRET')
+)
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
@@ -41,10 +44,6 @@ init_db()
 def get_now_jst():
     return datetime.utcnow() + timedelta(hours=9)
 
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
 @app.route('/')
 def index():
     if 'username' not in session: return redirect(url_for('login'))
@@ -53,7 +52,7 @@ def index():
             cur.execute('SELECT role FROM users WHERE username = %s', (session['username'],))
             user_data = cur.fetchone()
             if user_data: session['role'] = user_data['role']
-            if session['username'] == 'admin': session['role'] = 'admin'
+            
             now_jst = get_now_jst()
             now_str = now_jst.strftime('%Y-%m-%dT%H:%M')
             
@@ -81,22 +80,20 @@ def add_task():
     deadline = request.form.get('deadline') or "-"
     priority = int(request.form.get('priority', 1))
     
-    # --- お知らせ（プリント）投稿時のファイル処理 ---
+    # --- Cloudinary ファイルアップロード ---
     file = request.files.get('file')
-    filename = None
-    if is_notice and file and file.filename != '':
-        # 拡張子を取得し、日本語ファイル名によるエラーを回避
-        ext = os.path.splitext(file.filename)[1]
-        filename = f"print_{get_now_jst().strftime('%Y%m%d%H%M%S')}{ext}"
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    file_url = None
+    if file and file.filename != '':
+        upload_result = cloudinary.uploader.upload(file)
+        file_url = upload_result['secure_url']
 
-    if content:
+    if content or file_url:
         with get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute('''
                     INSERT INTO tasks ("user", content, start, deadline, created_at, priority, is_notice, file_path) 
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (session['username'], content, start, deadline, get_now_jst(), priority, is_notice, filename))
+                ''', (session['username'], content, start, deadline, get_now_jst(), priority, is_notice, file_url))
             conn.commit()
     return redirect(url_for('index'))
 
@@ -121,16 +118,15 @@ def chat():
                 rx = request.form.get('receiver')
                 g_name = request.form.get('group_name')
                 file = request.files.get('file')
-                filename = None
+                file_url = None
                 if file and file.filename != '':
-                    ext = os.path.splitext(file.filename)[1]
-                    filename = f"chat_{get_now_jst().strftime('%Y%m%d%H%M%S')}{ext}"
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    upload_result = cloudinary.uploader.upload(file)
+                    file_url = upload_result['secure_url']
                 
                 final_rx = f"grp_{g_name}" if rx == "group" else rx
-                if msg or filename:
+                if msg or file_url:
                     cur.execute('INSERT INTO chat_messages (username, message, created_at, receiver, file_path) VALUES (%s, %s, %s, %s, %s)',
-                                 (me, msg, get_now_jst().strftime('%m/%d %H:%M'), final_rx, filename))
+                                 (me, msg, get_now_jst().strftime('%m/%d %H:%M'), final_rx, file_url))
                     conn.commit()
                 return redirect(url_for('chat', user=partner, group=group))
 
