@@ -146,16 +146,21 @@ def chat():
             # --- GET処理（表示時） ---
             target = f"grp_{group}" if group else (partner if partner else "all")
             
-            # メッセージ取得SQL（相手と自分、または全体・グループを正しく取得）
-            if target == "all" or target.startswith("grp_"):
-                cur.execute("SELECT sender as username, content as message, file_path, created_at FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50", (target,))
-            else:
-                cur.execute("""
-                    SELECT sender as username, content as message, file_path, created_at FROM chat_messages 
-                    WHERE (sender = %s AND receiver = %s) OR (sender = %s AND receiver = %s)
-                    ORDER BY id DESC LIMIT 50
-                """, (me, target, target, me))
-            
+            # カラム名を " " で囲むことで、大文字小文字の不一致を回避します
+if target == "all" or target.startswith("grp_"):
+    cur.execute("""
+        SELECT sender AS username, content AS message, file_path, "created_at" 
+        FROM chat_messages 
+        WHERE receiver = %s 
+        ORDER BY id DESC LIMIT 50
+    """, (target,))
+else:
+    cur.execute("""
+        SELECT sender AS username, content AS message, file_path, "created_at" 
+        FROM chat_messages 
+        WHERE (sender = %s AND receiver = %s) OR (sender = %s AND receiver = %s)
+        ORDER BY id DESC LIMIT 50
+    """, (me, target, target, me))
             messages = cur.fetchall()
 
     # username=me を追加して、HTML側の msg.username == username 判定を動くようにします
