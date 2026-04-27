@@ -55,6 +55,7 @@ function toggleManual() {
         <div class="header-flex">
             <h1 style="margin:0; color:#2c3e50;">ClassBoard</h1>
             <div>
+                <a href="/timetable" class="btn" style="background:#673ab7; color:white;">📅 時間割</a>
                 {% if role != 'teacher' %}<a href="{{ url_for('chat') }}" class="btn btn-chat">💬 チャット</a>{% endif %}
                 <a href="/" class="btn btn-refresh">🔄 更新</a>
             </div>
@@ -126,12 +127,19 @@ function toggleManual() {
             </table>
         </div>
 
-        <!-- 🔧 管理者ツール（adminの時だけ表示） -->
+               <!-- 🔧 管理者ツール（adminの時だけ表示） -->
         {% if role == 'admin' %}
         <div class="admin-box">
             <h4 style="color: #e74c3c; margin-top: 0;">🔧 システム管理者ツール</h4>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <!-- 🆕 時間割変更ボタン -->
+                <a href="/timetable" class="btn" style="background-color: #f39c12; color: white;">✏️ 時間割変更</a>
+                
+                <!-- 🆕 週・月予定ボタン（今はアラートが出るだけ） -->
+                <a href="#" class="btn" style="background-color: #27ae60; color: white;" onclick="alert('準備中！')">📅 週・月予定</a>
+
                 <a href="/users" class="btn" style="background-color: #95a5a6; color: white;">👥 ユーザー管理・権限変更</a>
+                
                 <form action="/clear" method="post">
                     <button type="submit" class="btn" style="background-color: #e74c3c; color: white;" onclick="return confirm('全てのタスクを消去します。よろしいですか？')">🗑 全タスク一括削除</button>
                 </form>
