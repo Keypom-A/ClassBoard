@@ -108,56 +108,81 @@ def chat():
     
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            # 1. ユーザーリストを取得（これがないとHTMLでエラーになります）
+            # 1. ユーザーリスト取得
             cur.execute("SELECT username FROM users WHERE role = 'student'")
             users = cur.fetchall()
 
-            # 2. サイドバーの通知用データ取得
-            cur.execute("SELECT receiver, MAX(id) as last_id FROM chat_messages GROUP BY receiver")
-            last_ids = {r['receiver']: r['last_id'] for r in cur.fetchall()}
+            # 2. 通知用バッジ
+            last_ids = {}
+            try:
+                cur.execute("SELECT receiver, MAX(id) as last_id FROM chat_messages GROUP BY receiver")
+                for r in cur.fetchall():
+                    last_ids[r['receiver']] = r['last_id']
+            except:
+                conn.rollback()
 
             # 3. グループリスト取得
             cur.execute("SELECT DISTINCT receiver FROM chat_messages WHERE receiver LIKE 'grp_%%'")
             my_groups = [r['receiver'].replace('grp_', '') for r in cur.fetchall()]
-            if group and group not in my_groups: my_groups.append(group)
+            if group and group not in my_groups:
+                my_groups.append(group)
 
-            # --- POST処理（送信時） ---
+            # --- POST: メッセージ・ファイル送信 ---
             if request.method == 'POST':
                 message = request.form.get('message', '')
                 file = request.files.get('file')
                 file_url = None
-
+                
                 if file and file.filename != '':
                     try:
-                        upload_result = cloudinary.uploader.upload(file, resource_type="auto")
-                        file_url = upload_result.get('secure_url')
+                        res = cloudinary.uploader.upload(file, resource_type="auto")
+                        file_url = res.get('secure_url')
                     except Exception as e:
-                        print(f"Upload Error: {e}")
+                        print(f"Cloudinary Error: {e}")
 
                 target = f"grp_{group}" if group else (partner if partner else "all")
-                if message or file_url:
+                
+                # カラム名が 'username' か 'sender' か、'message' か 'content' かを自動判別して保存
+                try:
+                    cur.execute(
+                        "INSERT INTO chat_messages (username, message, receiver, file_path, created_at) VALUES (%s, %s, %s, %s, %s)",
+                        (me, message, target, file_url, get_now_jst().strftime('%Y-%m-%d %H:%M:%S'))
+                    )
+                except:
+                    conn.rollback()
+                    # もし初期の sender/content 構成だった場合
                     cur.execute(
                         "INSERT INTO chat_messages (sender, receiver, content, file_path) VALUES (%s, %s, %s, %s)",
                         (me, target, message, file_url)
                     )
-                    conn.commit()
+                conn.commit()
                 return redirect(url_for('chat', user=partner, group=group))
 
-            # --- GET処理（表示時） ---
+            # --- GET: メッセージ表示用データ取得 ---
             target = f"grp_{group}" if group else (partner if partner else "all")
             
-            # カラム名を " " で囲むことで、大文字小文字の不一致を回避します
+            # 全てのカラムを取得して、後で安全に処理
             if target == "all" or target.startswith("grp_"):
-                cur.execute('SELECT sender AS username, content AS message, file_path, "created_at" FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (target,))
+                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id ASC LIMIT 50', (target,))
             else:
-                cur.execute("""
-                    SELECT sender AS username, content AS message, file_path, "created_at" 
-                    FROM chat_messages 
-                    WHERE (sender = %s AND receiver = %s) OR (sender = %s AND receiver = %s)
-                    ORDER BY id DESC LIMIT 50
-                """, (me, target, me, target))
-                
-            messages = cur.fetchall()
+                cur.execute('''
+                    SELECT * FROM chat_messages 
+                    WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s)
+                    OR (sender = %s AND receiver = %s) OR (sender = %s AND receiver = %s)
+                    ORDER BY id ASC LIMIT 50
+                ''', (me, target, target, me, me, target, target, me))
+            
+            raw_messages = cur.fetchall()
+            
+            # HTMLが期待するキー名 (username, message, created_at) に統一して変換
+            messages = []
+            for m in raw_messages:
+                messages.append({
+                    'username': m.get('username') or m.get('sender', 'Unknown'),
+                    'message': m.get('message') or m.get('content', ''),
+                    'file_path': m.get('file_path'),
+                    'created_at': m.get('created_at', '')
+                })
 
     return render_template('chat.html', 
                            messages=messages, 
