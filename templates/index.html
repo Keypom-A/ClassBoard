@@ -44,30 +44,7 @@
     </style>
 </head>
 <body>
-    <!-- ヘルプボタン -->
-<div class="help-trigger" onclick="toggleManual()">？</div>
 
-<!-- マニュアル本体 -->
-<div class="manual-overlay" id="manualOverlay" onclick="toggleManual()">
-    <div class="manual-content" onclick="event.stopPropagation()">
-        <button class="manual-close" onclick="toggleManual()">✕ 閉じる</button>
-        <h3 style="color:#3498db; margin-top:0;">📋 使い方ガイド</h3>
-        
-        <p><b>1. ログイン</b><br>初回は「新規登録」から名前を決めてください。</p>
-        
-        <p><b>2. 掲示板</b><br>期限が近い予定は赤くなります。先生のプリントは青い枠の「資料を確認する」から見られます。</p>
-        
-        <p><b>3. チャット</b><br>
-        ・全体：全員が見れる場所<br>
-        ・個人：名前を選んで1対1<br>
-        ・グループ：好きな「合言葉」を決めて参加！※一言送信すると一覧に固定されます。</p>
-        
-        <p style="font-size:0.8em; color:#888; border-top:1px solid #eee; pt-10;">
-        ※不適切な投稿は管理者により削除される場合があります。</p>
-    </div>
-</div>
-
-<script>
 function toggleManual() {
     const overlay = document.getElementById('manualOverlay');
     overlay.style.display = (overlay.style.display === 'flex') ? 'none' : 'flex';
