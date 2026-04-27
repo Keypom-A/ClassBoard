@@ -283,6 +283,37 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+@app.route('/timetable', methods=['GET', 'POST'])
+def timetable():
+    if 'username' not in session: return redirect(url_for('login'))
+    
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            # POST: 先生や管理者が時間割を書き換えたとき
+            if request.method == 'POST' and session.get('role') in ['admin', 'teacher']:
+                day = request.form.get('day')
+                period = request.form.get('period')
+                subject = request.form.get('subject')
+                cur.execute('''
+                    INSERT INTO timetable (day_of_week, period, subject) 
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (day_of_week, period) 
+                    DO UPDATE SET subject = EXCLUDED.subject
+                ''', (day, period, subject))
+                conn.commit()
+                return redirect(url_for('timetable'))
+
+            # GET: 時間割データの取得
+            cur.execute("SELECT * FROM timetable ORDER BY day_of_week, period")
+            rows = cur.fetchall()
+            # 辞書型にしてHTMLで使いやすくする {(曜日, 時限): 教科名}
+            table_data = {(r['day_of_week'], r['period']): r['subject'] for r in rows}
+
+    days = ["月", "火", "水", "木", "金"]
+    periods = [1, 2, 3, 4, 5, 6] # 6時間目まで
+    return render_template('timetable.html', table=table_data, days=days, periods=periods, role=session.get('role'))
+
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
