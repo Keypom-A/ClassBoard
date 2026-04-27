@@ -84,7 +84,7 @@ def add_task():
     file = request.files.get('file')
     file_url = None
     if file and file.filename != '':
-        upload_result = cloudinary.uploader.upload(file)
+        upload_result = cloudinary.uploader.upload(file,resource_type="auto")
         file_url = upload_result['secure_url']
 
     if content or file_url:
