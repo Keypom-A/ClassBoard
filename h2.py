@@ -216,18 +216,6 @@ def chat():
                            last_ids=last_ids, 
                            username=me)
 
-                })
-
-
-    return render_template('chat.html', 
-                           messages=messages, 
-                           partner=partner, 
-                           group=group, 
-                           my_groups=my_groups, 
-                           users=users, 
-                           last_ids=last_ids, 
-                           username=me)
-
 @app.route('/delete/<int:task_id>', methods=['POST'])
 def delete_task(task_id):
     if 'username' in session:
