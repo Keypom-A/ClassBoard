@@ -128,11 +128,13 @@ def chat():
                 my_groups.append(group)
 
             # --- POST: メッセージ・ファイル送信 ---
+                     # --- POST処理（送信時） ---
             if request.method == 'POST':
-                message = request.form.get('message', '')
+                msg_content = request.form.get('message', '')
                 file = request.files.get('file')
                 file_url = None
-                
+
+                # Cloudinaryへアップロード
                 if file and file.filename != '':
                     try:
                         res = cloudinary.uploader.upload(file, resource_type="auto")
@@ -142,21 +144,23 @@ def chat():
 
                 target = f"grp_{group}" if group else (partner if partner else "all")
                 
-                # カラム名が 'username' か 'sender' か、'message' か 'content' かを自動判別して保存
-                try:
-                    cur.execute(
-                        "INSERT INTO chat_messages (username, message, receiver, file_path, created_at) VALUES (%s, %s, %s, %s, %s)",
-                        (me, message, target, file_url, get_now_jst().strftime('%Y-%m-%d %H:%M:%S'))
-                    )
-                except:
-                    conn.rollback()
-                    # もし初期の sender/content 構成だった場合
-                    cur.execute(
-                        "INSERT INTO chat_messages (sender, receiver, content, file_path) VALUES (%s, %s, %s, %s)",
-                        (me, target, message, file_url)
-                    )
-                conn.commit()
+                # 文字列に変換した現在時刻
+                now_str = get_now_jst().strftime('%Y-%m-%d %H:%M:%S')
+
+                if msg_content or file_url:
+                    try:
+                        # init_dbの定義に合わせて、username, message, file_path, created_at を使用
+                        cur.execute("""
+                            INSERT INTO chat_messages (username, message, receiver, file_path, created_at) 
+                            VALUES (%s, %s, %s, %s, %s)
+                        """, (me, msg_content, target, file_url, now_str))
+                        conn.commit()
+                    except Exception as e:
+                        print(f"DB Insert Error: {e}")
+                        conn.rollback()
+
                 return redirect(url_for('chat', user=partner, group=group))
+
 
             # --- GET: メッセージ表示用データ取得 ---
             target = f"grp_{group}" if group else (partner if partner else "all")
