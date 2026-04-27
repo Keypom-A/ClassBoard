@@ -161,7 +161,7 @@ else:
         WHERE (sender = %s AND receiver = %s) OR (sender = %s AND receiver = %s)
         ORDER BY id DESC LIMIT 50
     """, (me, target, target, me))
-            messages = cur.fetchall()
+  messages = cur.fetchall()
     # username=me を追加して、HTML側の msg.username == username 判定を動くようにします
 return render_template('chat.html', 
                            messages=messages, 
