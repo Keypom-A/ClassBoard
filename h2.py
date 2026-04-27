@@ -163,7 +163,7 @@ else:
     """, (me, target, target, me))
             messages = cur.fetchall()
     # username=me を追加して、HTML側の msg.username == username 判定を動くようにします
-    return render_template('chat.html', 
+return render_template('chat.html', 
                            messages=messages, 
                            partner=partner, 
                            group=group, 
