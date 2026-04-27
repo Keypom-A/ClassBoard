@@ -181,21 +181,22 @@ def chat():
 
 
                      # --- GET: メッセージ表示用データ取得 ---
+                        # --- GET: メッセージ表示用データ取得 ---
             target = f"grp_{group}" if group else (partner if partner else "all")
             
+            # 全チャット共通：最新の50件を「IDの大きい順（新しい順）」で取得する
             if target == "all" or target.startswith("grp_"):
-                # 最新の50件を取得
-                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id ASC', (target,))
+                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (target,))
             else:
-                # me と partner のやり取りを username カラムで検索
                 cur.execute('''
                     SELECT * FROM chat_messages 
                     WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s)
                     ORDER BY id DESC LIMIT 50
                 ''', (me, target, target, me))
             
-            # DESC（新しい順）で取得したので、画面表示用に reversed で古い順（下が最新）に戻す
             raw_messages = cur.fetchall()
+            
+            # HTMLに渡す前に、取得した50件を「古い順（下が最新）」にひっくり返す
             messages = []
             for m in reversed(raw_messages):
                 messages.append({
@@ -203,6 +204,18 @@ def chat():
                     'message': m.get('message') or m.get('content', ''),
                     'file_path': m.get('file_path'),
                     'created_at': m.get('created_at', '')
+                })
+
+    # returnの位置は with get_db() の w の真下に合わせる
+    return render_template('chat.html', 
+                           messages=messages, 
+                           partner=partner, 
+                           group=group, 
+                           my_groups=my_groups, 
+                           users=users, 
+                           last_ids=last_ids, 
+                           username=me)
+
                 })
 
 
