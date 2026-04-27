@@ -70,7 +70,7 @@
                     {% endif %}
                 </div>
                 {% if n.file_path %}
-                <a href="/uploads/{{ n.file_path }}" target="_blank" class="btn-view-doc">📎 資料を確認する</a>
+                <a href="{{ n.file_path }}" target="_blank" class="btn-view-doc">📎 資料を確認する</a>
                 {% endif %}
             </div>
             {% endfor %}
