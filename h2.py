@@ -26,7 +26,9 @@ def init_db():
     if not DATABASE_URL: return
     with get_db() as conn:
         with conn.cursor() as cur:
+            # ユーザーテーブル
             cur.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
+            # タスク・予定テーブル
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS tasks (
                     id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, 
@@ -35,11 +37,27 @@ def init_db():
                     file_path TEXT
                 )
             ''')
+            # チャットテーブル
             cur.execute('CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, username TEXT, message TEXT, created_at TEXT, receiver TEXT DEFAULT \'all\', file_path TEXT)')
+            
+            # 時間割テーブル（ここに追加！）
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS timetable (
+                    day_of_week INTEGER,
+                    period INTEGER,
+                    subject TEXT,
+                    PRIMARY KEY (day_of_week, period)
+                )
+            ''')
+            
+            # 管理者ユーザー作成
             cur.execute("INSERT INTO users (username, password, role) VALUES ('admin', '1234', 'admin') ON CONFLICT DO NOTHING")
-        conn.commit()
+            
+            # 最後にまとめて確定
+            conn.commit()
 
 init_db()
+
 
 def get_now_jst():
     return datetime.utcnow() + timedelta(hours=9)
