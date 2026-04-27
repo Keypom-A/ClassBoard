@@ -118,24 +118,31 @@
                 {% endfor %}
             </div>
 
-            <div class="chat-input-area">
-                <form action="{{ url_for('chat', user=partner, group=group) }}" method="post" enctype="multipart/form-data" class="input-row">
-                    {% if group %}
-                        <input type="hidden" name="receiver" value="group"><input type="hidden" name="group_name" value="{{ group }}">
-                        <span class="target-tag" style="background:#2ecc71;">GRP</span>
-                    {% elif partner %}
-                        <input type="hidden" name="receiver" value="{{ partner }}">
-                        <span class="target-tag" style="background:#ff4757;">DM</span>
-                    {% else %}
-                        <input type="hidden" name="receiver" value="all">
-                        <span class="target-tag">ALL</span>
-                    {% endif %}
-                    
-                    <label style="cursor:pointer; font-size:1.4em;">📎<input type="file" name="file" style="display:none;" onchange="this.parentElement.style.color='#007bff'"></label>
-                    <input type="text" name="message" placeholder="メッセージ..." autocomplete="off" required>
-                    <button type="submit" class="send">送信</button>
-                </form>
-            </div>
+           <div class="chat-input-area">
+    <form action="{{ url_for('chat', user=partner, group=group) }}" method="post" enctype="multipart/form-data" class="input-row">
+        <!-- 宛先指定用（隠し要素） -->
+        {% if group %}
+            <input type="hidden" name="receiver" value="group">
+        {% elif partner %}
+            <input type="hidden" name="receiver" value="{{ partner }}">
+        {% else %}
+            <input type="hidden" name="receiver" value="all">
+        {% endif %}
+        
+        <!-- クリップアイコン -->
+        <label style="cursor:pointer; font-size:1.4em;">
+            📎
+            <input type="file" name="file" style="display:none;" onchange="this.parentElement.style.color='#007bff'">
+        </label>
+
+        <!-- メッセージ入力欄（requiredを削除！） -->
+        <input type="text" name="message" placeholder="メッセージを入力..." autocomplete="off">
+        
+        <!-- 送信ボタン（type="submit"を明示） -->
+        <button type="submit" class="send">送信</button>
+    </form>
+</div>
+
         </div>
     </div>
 
