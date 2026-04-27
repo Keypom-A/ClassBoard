@@ -23,7 +23,6 @@
         .sidebar a:hover { background: #f0f4f8; }
         .sidebar .active { background: #007bff; color: white !important; }
         
-        /* 通知バッジ（！） */
         .badge-notify {
             background: #ff4757; color: white; font-size: 10px; font-weight: bold;
             min-width: 18px; height: 18px; border-radius: 50%;
@@ -54,7 +53,6 @@
         input[type="text"] { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ddd; background: #f8f9fa; outline: none; font-size: 16px; }
         button.send { background: #007bff; color: white; border: none; padding: 8px 18px; border-radius: 20px; cursor: pointer; font-weight: bold; }
 
-        /* --- スマホ用レスポンシブ --- */
         @media (max-width: 768px) {
             .menu-btn { display: block; }
             .sidebar { position: absolute; left: 0; top: 0; bottom: 0; transform: translateX(-100%); box-shadow: 5px 0 15px rgba(0,0,0,0.1); }
@@ -113,7 +111,8 @@
                     <div class="user-name">{{ msg.username }} <span style="font-weight:normal; color:#ccc; font-size:0.8em; margin-left:5px;">{{ msg.created_at }}</span></div>
                     <div style="word-break: break-all;">{{ msg.message }}</div>
                     {% if msg.file_path %}
-                        <div style="margin-top:5px;"><a href="{{ url_for('uploaded_file', filename=msg.file_path) }}" target="_blank" style="font-size:0.8em; color:#007bff; text-decoration:none;">📎 ファイルを表示</a></div>
+                        <!-- 修正箇所：CloudinaryのURLを直接開くように変更 -->
+                        <div style="margin-top:5px;"><a href="{{ msg.file_path }}" target="_blank" style="font-size:0.8em; color:#007bff; text-decoration:none;">📎 ファイルを表示</a></div>
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -146,7 +145,6 @@
             document.getElementById('overlay').classList.toggle('open');
         }
 
-        // 既読管理＆通知バッジ判定
         window.onload = function() {
             let readData = JSON.parse(localStorage.getItem('read_ids') || "{}");
             const currentRx = "{% if group %}grp_{{ group }}{% elif partner %}{{ partner }}{% else %}all{% endif %}";
@@ -157,12 +155,16 @@
                 const badge = link.querySelector('.badge-notify');
 
                 if (rx === currentRx) {
-                    readData[rx] = lastId; // 今開いているところを既読にする
+                    readData[rx] = lastId;
                 } else if (lastId > (readData[rx] || 0)) {
-                    badge.style.display = 'inline-flex'; // 未読があれば「！」を出す
+                    badge.style.display = 'inline-flex';
                 }
             });
             localStorage.setItem('read_ids', JSON.stringify(readData));
+            
+            // 下までスクロール
+            const chatDisplay = document.getElementById('chatDisplay');
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
         };
 
         function createGroup() {
