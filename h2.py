@@ -167,7 +167,7 @@ def chat():
             
             if target == "all" or target.startswith("grp_"):
                 # 最新の50件を取得
-                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (target,))
+                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id ASC', (target,))
             else:
                 # me と partner のやり取りを username カラムで検索
                 cur.execute('''
