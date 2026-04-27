@@ -101,55 +101,72 @@ def add_task():
 def chat():
     if 'username' not in session: return redirect(url_for('login'))
     if session.get('role') == 'teacher': return "先生はチャットを利用できません。"
+    
     me = session['username']
-    partner, group = request.args.get('user'), request.args.get('group')
+    partner = request.args.get('user')
+    group = request.args.get('group')
     
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            # サイドバーなどの表示用データ取得
+            # 1. ユーザーリストを取得（これがないとHTMLでエラーになります）
+            cur.execute("SELECT username FROM users WHERE role = 'student'")
+            users = cur.fetchall()
+
+            # 2. サイドバーの通知用データ取得
             cur.execute("SELECT receiver, MAX(id) as last_id FROM chat_messages GROUP BY receiver")
             last_ids = {r['receiver']: r['last_id'] for r in cur.fetchall()}
 
+            # 3. グループリスト取得
             cur.execute("SELECT DISTINCT receiver FROM chat_messages WHERE receiver LIKE 'grp_%%'")
             my_groups = [r['receiver'].replace('grp_', '') for r in cur.fetchall()]
             if group and group not in my_groups: my_groups.append(group)
 
-            # --- POST: メッセージ・ファイル送信処理 ---
+            # --- POST処理（送信時） ---
             if request.method == 'POST':
                 message = request.form.get('message', '')
                 file = request.files.get('file')
                 file_url = None
 
-                # 1. ファイルが選択されていればCloudinaryにアップロード
                 if file and file.filename != '':
                     try:
-                        # 画像・PDFなど自動判別してアップロード
                         upload_result = cloudinary.uploader.upload(file, resource_type="auto")
                         file_url = upload_result.get('secure_url')
                     except Exception as e:
-                        print(f"Cloudinary Upload Error: {e}")
+                        print(f"Upload Error: {e}")
 
-                # 2. データベースへ保存
-                target = f"grp_{group}" if group else partner
+                target = f"grp_{group}" if group else (partner if partner else "all")
                 if message or file_url:
                     cur.execute(
                         "INSERT INTO chat_messages (sender, receiver, content, file_path) VALUES (%s, %s, %s, %s)",
                         (me, target, message, file_url)
                     )
                     conn.commit()
-                
                 return redirect(url_for('chat', user=partner, group=group))
 
-            # --- GET: メッセージ表示用データ取得 ---
-            target = f"grp_{group}" if group else partner
-            cur.execute("""
-                SELECT * FROM chat_messages 
-                WHERE (sender = %s AND receiver = %s) OR (sender = %s AND receiver = %s)
-                ORDER BY id ASC
-            """, (me, target, target, me))
+            # --- GET処理（表示時） ---
+            target = f"grp_{group}" if group else (partner if partner else "all")
+            
+            # メッセージ取得SQL（相手と自分、または全体・グループを正しく取得）
+            if target == "all" or target.startswith("grp_"):
+                cur.execute("SELECT sender as username, content as message, file_path, created_at FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50", (target,))
+            else:
+                cur.execute("""
+                    SELECT sender as username, content as message, file_path, created_at FROM chat_messages 
+                    WHERE (sender = %s AND receiver = %s) OR (sender = %s AND receiver = %s)
+                    ORDER BY id DESC LIMIT 50
+                """, (me, target, target, me))
+            
             messages = cur.fetchall()
 
-    return render_template('chat.html', messages=messages, partner=partner, group=group, my_groups=my_groups, last_ids=last_ids)
+    # username=me を追加して、HTML側の msg.username == username 判定を動くようにします
+    return render_template('chat.html', 
+                           messages=messages, 
+                           partner=partner, 
+                           group=group, 
+                           my_groups=my_groups, 
+                           users=users, 
+                           last_ids=last_ids, 
+                           username=me)
 
 @app.route('/delete/<int:task_id>', methods=['POST'])
 def delete_task(task_id):
