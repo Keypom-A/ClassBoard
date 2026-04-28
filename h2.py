@@ -207,8 +207,7 @@ def timetable():
             table_data = {(r['day_of_week'], r['period']): {'subject': r['subject'], 'changed': False} for r in cur.fetchall()}
             cur.execute("SELECT * FROM timetable WHERE date = ANY(%s)", (week_dates,))
             changed_data = {(r['date'], r['period']): {'subject': r['subject'], 'changed': True} for r in cur.fetchall()}
-   return render_template('timetable.html', table=table_data, changed_data=changed_data, week_dates=week_dates, days_names=["月", "火", "水", "木", "金"], periods=range(1, 7), role=session.get('role'))
-
+    return render_template('timetable.html', table=table_data, changed_data=changed_data, week_dates=week_dates, days_names=["月", "火", "水", "木", "金"], periods=range(1, 7), role=session.get('role'))
 
 @app.route('/delete/<int:task_id>', methods=['POST'])
 def delete_task(task_id):
