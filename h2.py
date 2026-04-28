@@ -26,9 +26,8 @@ def init_db():
     if not DATABASE_URL: return
     with get_db() as conn:
         with conn.cursor() as cur:
-            # ユーザーテーブル
+            # 1. 既存テーブルの作成
             cur.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)')
-            # タスク・予定テーブル
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS tasks (
                     id SERIAL PRIMARY KEY, "user" TEXT, content TEXT, 
@@ -37,33 +36,25 @@ def init_db():
                     file_path TEXT
                 )
             ''')
-            # チャットテーブル
             cur.execute('CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, username TEXT, message TEXT, created_at TEXT, receiver TEXT DEFAULT \'all\', file_path TEXT)')
             
-            # 時間割テーブル（ここに追加！）
+            # 2. 時間割テーブルの再構築（一度消して新しい構造にする）
+            cur.execute('DROP TABLE IF EXISTS timetable') # 古い設定を削除
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS timetable (
-                    day_of_week INTEGER,
+                    date TEXT,
                     period INTEGER,
                     subject TEXT,
-                    PRIMARY KEY (day_of_week, period)
+                    is_changed BOOLEAN DEFAULT FALSE,
+                    PRIMARY KEY (date, period)
                 )
             ''')
             
             # 管理者ユーザー作成
             cur.execute("INSERT INTO users (username, password, role) VALUES ('admin', '1234', 'admin') ON CONFLICT DO NOTHING")
-           
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS timetable (
-                    date TEXT,            -- '2026-04-27' などの日付
-                    period INTEGER,       -- 1〜6時間目
-                    subject TEXT,
-                    is_changed BOOLEAN DEFAULT FALSE, -- 変更箇所フラグ
-                    PRIMARY KEY (date, period)
-              )
-          ''') 
-            # 最後にまとめて確定
+            
             conn.commit()
+
 
 init_db()
 
