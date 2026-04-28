@@ -42,26 +42,37 @@
             {% for p in periods %}
             <tr>
                 <td class="period-num">{{ p }}</td>
-                {% for d_date in week_dates %}
-                    {% set cell = table.get((d_date, p), {'subject': '', 'changed': False}) %}
+                {% for d_idx in range(5) %}
+                    {% set d_date = week_dates[d_idx] %}
+                    {# 1. まず「今日だけの変更分(日付)」を探し、なければ「テンプレ(曜日)」を使う #}
+                    {% set c_cell = changed_data.get((d_date, p)) %}
+                    {% set t_cell = table.get((d_idx, p)) %}
+                    
+                    {% if c_cell %}
+                        {% set final_subject = c_cell.subject %}{% set is_red = True %}
+                    {% elif t_cell %}
+                        {% set final_subject = t_cell.subject %}{% set is_red = False %}
+                    {% else %}
+                        {% set final_subject = '' %}{% set is_red = False %}
+                    {% endif %}
                 <td>
                     {% if role in ['admin', 'teacher'] %}
-                    <form method="post" id="form-{{d_date}}-{{p}}" style="margin:0;">
+                    <form method="post" id="form-{{d_idx}}-{{p}}" style="margin:0;">
                         <input type="hidden" name="date" value="{{ d_date }}">
+                        <input type="hidden" name="day" value="{{ d_idx }}">
                         <input type="hidden" name="period" value="{{ p }}">
-                        <!-- 赤文字フラグを送るための隠し入力 -->
-                        <input type="hidden" name="is_changed" id="state-{{d_date}}-{{p}}" value="{{ 'true' if cell.changed else 'false' }}">
+                        <input type="hidden" name="is_changed" id="state-{{d_idx}}-{{p}}" value="{{ 'true' if is_red else 'false' }}">
                         
-                        <input type="text" name="subject" value="{{ cell.subject }}" 
-                               class="subject-input {{ 'is-changed' if cell.changed }}" 
+                        <input type="text" name="subject" value="{{ final_subject }}" 
+                               class="subject-input {{ 'is-changed' if is_red }}" 
                                onchange="this.form.submit()" placeholder="...">
                         
-                        <button type="button" class="btn-toggle-red" onclick="toggleRed('{{d_date}}', '{{p}}')">
-                            {{ '黒に戻す' if cell.changed else '🔴 変更' }}
+                        <button type="button" class="btn-toggle-red" onclick="toggleRed('{{d_idx}}', '{{p}}')">
+                            {{ '黒(テンプレ)に戻す' if is_red else '🔴 変更(今日だけ)' }}
                         </button>
                     </form>
                     {% else %}
-                        <strong class="{{ 'is-changed' if cell.changed }}">{{ cell.subject }}</strong>
+                        <strong class="{{ 'is-changed' if is_red }}">{{ final_subject }}</strong>
                     {% endif %}
                 </td>
                 {% endfor %}
@@ -70,6 +81,17 @@
         </table>
         <a href="/" class="back-link">← ホームに戻る</a>
     </div>
+
+    <script>
+    function toggleRed(dayIdx, period) {
+        const inputState = document.getElementById('state-' + dayIdx + '-' + period);
+        // ボタンを押すと赤文字フラグを反転させて送信
+        inputState.value = (inputState.value === 'true') ? 'false' : 'true';
+        document.getElementById('form-' + dayIdx + '-' + period).submit();
+    }
+    </script>
+</body>
+
 
     <script>
     function toggleRed(date, period) {
