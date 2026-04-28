@@ -6,15 +6,23 @@
     <title>ClassBoard 時間割</title>
     <style>
         body { font-family: sans-serif; margin: 0; background: #f0f2f5; padding: 15px; }
-        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 800px; margin: auto; }
+        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 900px; margin: auto; }
         h2 { text-align: center; color: #333; margin-top: 0; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 15px; }
         th, td { border: 1px solid #eee; text-align: center; padding: 8px; font-size: 14px; }
-        th { background: #007bff; color: white; height: 40px; }
-        td { height: 60px; }
-        .period-num { background: #f8f9fa; font-weight: bold; width: 30px; }
-        input[type="text"] { width: 100%; border: 1px solid transparent; text-align: center; font-size: 14px; padding: 10px 0; background: #fffde7; border-radius: 4px; }
-        input[type="text"]:focus { border-color: #007bff; outline: none; background: #fff; }
+        th { background: #007bff; color: white; height: 45px; }
+        td { height: 70px; vertical-align: middle; }
+        .period-num { background: #f8f9fa; font-weight: bold; width: 40px; }
+        
+        /* 通常の入力・表示 */
+        .subject-input { width: 100%; border: 1px solid transparent; text-align: center; font-size: 14px; padding: 5px 0; background: #fffde7; border-radius: 4px; }
+        .subject-input:focus { border-color: #007bff; outline: none; background: #fff; }
+        
+        /* 変更箇所（赤文字）のスタイル */
+        .is-changed { color: #e74c3c !important; font-weight: bold !important; }
+        
+        .date-sub { font-size: 10px; display: block; font-weight: normal; opacity: 0.9; }
+        .btn-toggle-red { font-size: 10px; padding: 2px 5px; cursor: pointer; border: 1px solid #ddd; background: white; border-radius: 3px; margin-top: 3px; display: block; width: 100%; }
         .back-link { display: block; text-align: center; margin-top: 20px; color: #007bff; text-decoration: none; font-weight: bold; }
     </style>
 </head>
@@ -23,22 +31,37 @@
         <h2>📅 時間割</h2>
         <table>
             <tr>
-                <th style="width:10%;"></th>
-                {% for d in days %}<th>{{ d }}</th>{% endfor %}
+                <th style="width:10%;">時</th>
+                {% for d_name in days_names %}
+                <th>
+                    {{ d_name }}
+                    <span class="date-sub">{{ week_dates[loop.index0][5:] }}</span>
+                </th>
+                {% endfor %}
             </tr>
             {% for p in periods %}
             <tr>
                 <td class="period-num">{{ p }}</td>
-                {% for d_idx in range(days|length) %}
+                {% for d_date in week_dates %}
+                    {% set cell = table.get((d_date, p), {'subject': '', 'changed': False}) %}
                 <td>
                     {% if role in ['admin', 'teacher'] %}
-                    <form method="post" style="margin:0;">
-                        <input type="hidden" name="day" value="{{ d_idx }}">
+                    <form method="post" id="form-{{d_date}}-{{p}}" style="margin:0;">
+                        <input type="hidden" name="date" value="{{ d_date }}">
                         <input type="hidden" name="period" value="{{ p }}">
-                        <input type="text" name="subject" value="{{ table.get((d_idx, p), '') }}" onchange="this.form.submit()" placeholder="...">
+                        <!-- 赤文字フラグを送るための隠し入力 -->
+                        <input type="hidden" name="is_changed" id="state-{{d_date}}-{{p}}" value="{{ 'true' if cell.changed else 'false' }}">
+                        
+                        <input type="text" name="subject" value="{{ cell.subject }}" 
+                               class="subject-input {{ 'is-changed' if cell.changed }}" 
+                               onchange="this.form.submit()" placeholder="...">
+                        
+                        <button type="button" class="btn-toggle-red" onclick="toggleRed('{{d_date}}', '{{p}}')">
+                            {{ '黒に戻す' if cell.changed else '🔴 変更' }}
+                        </button>
                     </form>
                     {% else %}
-                        <strong>{{ table.get((d_idx, p), '') }}</strong>
+                        <strong class="{{ 'is-changed' if cell.changed }}">{{ cell.subject }}</strong>
                     {% endif %}
                 </td>
                 {% endfor %}
@@ -47,5 +70,15 @@
         </table>
         <a href="/" class="back-link">← ホームに戻る</a>
     </div>
+
+    <script>
+    function toggleRed(date, period) {
+        const inputState = document.getElementById('state-' + date + '-' + period);
+        // trueならfalseへ、falseならtrueへ
+        inputState.value = (inputState.value === 'true') ? 'false' : 'true';
+        // フォームを送信して保存
+        document.getElementById('form-' + date + '-' + period).submit();
+    }
+    </script>
 </body>
 </html>
