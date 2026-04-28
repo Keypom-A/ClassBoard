@@ -220,7 +220,7 @@ def chat():
 def timetable():
     if 'username' not in session: return redirect(url_for('login'))
     
-    # 今週の月曜日〜金曜日の日付を計算
+    # 今週の月〜金の「日付」を計算（これが横軸になります）
     now = get_now_jst()
     monday = now - timedelta(days=now.weekday())
     week_dates = [(monday + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(5)]
@@ -242,12 +242,16 @@ def timetable():
                 conn.commit()
                 return redirect(url_for('timetable'))
 
-            # 今週の日付に一致するデータだけ取得
+            # 3. 今週の日付のデータを取得
             cur.execute("SELECT * FROM timetable WHERE date = ANY(%s)", (week_dates,))
             rows = cur.fetchall()
+            # {(日付, 時限): {'subject': 教科, 'changed': 変更フラグ}}
             table_data = {(r['date'], r['period']): {'subject': r['subject'], 'changed': r['is_changed']} for r in rows}
 
-    return render_template('timetable.html', table=table_data, week_dates=week_dates, periods=range(1, 7), role=session.get('role'))
+    days_names = ["月", "火", "水", "木", "金"]
+    # 1〜6時間目のループ用
+    periods = range(1, 7) 
+    return render_template('timetable.html', table=table_data, week_dates=week_dates, days_names=days_names, periods=periods, role=session.get('role'))
 
 
 @app.route('/delete/<int:task_id>', methods=['POST'])
