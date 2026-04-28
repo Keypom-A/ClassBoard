@@ -251,7 +251,14 @@ def timetable():
     days_names = ["月", "火", "水", "木", "金"]
     # 1〜6時間目のループ用
     periods = range(1, 7) 
-    return render_template('timetable.html', table=table_data, week_dates=week_dates, days_names=days_names, periods=periods, role=session.get('role'))
+       return render_template(
+        'timetable.html', 
+        table=table_data, 
+        week_dates=week_dates, 
+        days_names=days_names, 
+        periods=periods, 
+        role=session.get('role')
+    )
 
 
 @app.route('/delete/<int:task_id>', methods=['POST'])
