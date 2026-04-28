@@ -192,50 +192,43 @@ def timetable():
     monday = now - timedelta(days=now.weekday())
     week_dates = [(monday + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(5)]
     
-    # 曜日と日付の対応表 (月=0, 火=1...)
-    day_map = {0: "月", 1: "火", 2: "水", 3: "木", 4: "金"}
+    # HTML側の table.get((d_idx, p)) に合わせるためのマップ
+    day_to_idx = {"月": 0, "火": 1, "水": 2, "木": 3, "金": 4}
 
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            # --- POST処理はそのまま ---
+            # --- POST処理（送信時） ---
             if request.method == 'POST' and session.get('role') in ['admin', 'teacher']:
-                # ... (既存のPOST処理) ...
+                date, day, period, subject = request.form.get('date'), request.form.get('day'), request.form.get('period'), request.form.get('subject')
+                is_changed = True if request.form.get('is_changed') == 'true' else False
+                if is_changed:
+                    cur.execute('INSERT INTO timetable (date, period, subject, is_changed) VALUES (%s, %s, %s, True) ON CONFLICT (date, period) DO UPDATE SET subject = EXCLUDED.subject, is_changed = True', (date, period, subject))
+                else:
+                    cur.execute('DELETE FROM timetable WHERE date = %s AND period = %s', (date, period))
+                    cur.execute('INSERT INTO timetable (day_of_week, period, subject, is_changed) VALUES (%s, %s, %s, False) ON CONFLICT (day_of_week, period) DO UPDATE SET subject = EXCLUDED.subject, is_changed = False', (day, period, subject))
+                conn.commit()
                 return redirect(url_for('timetable'))
 
-            # --- 表示用データ作成 ---
-            # 1. まずテンプレ（曜日データ）をすべて取得
+            # --- GET処理（ここをHTMLの変数名に合わせる） ---
+            # 1. テンプレ（黒）
             cur.execute("SELECT * FROM timetable WHERE day_of_week IS NOT NULL")
-            raw_template = cur.fetchall()
-            
-            # 2. 今週の変更（日付データ）をすべて取得
+            table = {}
+            for r in cur.fetchall():
+                idx = day_to_idx.get(r['day_of_week'])
+                if idx is not None:
+                    table[(idx, int(r['period']))] = {'subject': r['subject']}
+
+            # 2. 変更分（赤）
             cur.execute("SELECT * FROM timetable WHERE date::text = ANY(%s)", (week_dates,))
-            raw_changes = cur.fetchall()
+            changed_data = {}
+            for r in cur.fetchall():
+                d_str = r['date'].strftime('%Y-%m-%d') if hasattr(r['date'], 'strftime') else str(r['date'])
+                changed_data[(d_str, int(r['period']))] = {'subject': r['subject']}
 
-            # 3. データを整理して合体させる
-            # 構造: final_table[(日付, 時限)] = {subject, is_changed}
-            final_table = {}
-            
-            # A. まず今週の各日にテンプレを割り当てる
-            for i, date_str in enumerate(week_dates):
-                day_name = day_map[i]
-                for p in range(1, 7): # 1〜6限
-                    # テンプレから該当する曜日の科目を探す
-                    match = next((x for x in raw_template if x['day_of_week'] == day_name and x['period'] == p), None)
-                    final_table[(date_str, p)] = {
-                        'subject': match['subject'] if match else "",
-                        'is_changed': False
-                    }
-
-            # B. 変更データがあれば、その日付・時限を上書きする
-            for c in raw_changes:
-                d_str = c['date'].strftime('%Y-%m-%d') if hasattr(c['date'], 'strftime') else str(c['date'])
-                final_table[(d_str, c['period'])] = {
-                    'subject': c['subject'],
-                    'is_changed': True
-                }
-
+    # ★ HTMLが探している変数名（table と changed_data）で渡す
     return render_template('timetable.html', 
-                           final_table=final_table, 
+                           table=table, 
+                           changed_data=changed_data, 
                            week_dates=week_dates, 
                            days_names=["月", "火", "水", "木", "金"], 
                            periods=range(1, 7), 
