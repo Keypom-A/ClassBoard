@@ -229,29 +229,35 @@ def timetable():
 
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            if request.method == 'POST' and session.get('role') in ['admin', 'teacher']:
-                date = request.form.get('date')   # 日付（変更用）
-                day = request.form.get('day')     # 曜日（テンプレ用）
+                if request.method == 'POST' and session.get('role') in ['admin', 'teacher']:
+                date = request.form.get('date')
+                day = request.form.get('day')
                 period = request.form.get('period')
                 subject = request.form.get('subject')
                 is_changed = True if request.form.get('is_changed') == 'true' else False
                 
-                # 赤文字（変更）なら日付で保存、黒文字ならテンプレ(曜日)として保存
                 if is_changed:
+                    # 【赤文字にする】その日限定のデータとして保存
                     cur.execute('''
                         INSERT INTO timetable (date, period, subject, is_changed) 
-                        VALUES (%s, %s, %s, %s)
+                        VALUES (%s, %s, %s, True)
                         ON CONFLICT (date, period) DO UPDATE SET subject = EXCLUDED.subject, is_changed = True
-                    ''', (date, period, subject, True))
+                    ''', (date, period, subject))
                 else:
-                    # テンプレ（曜日）として保存
+                    # 【黒文字に戻す】
+                    # 1. 邪魔をしている「その日限定データ（日付版）」を削除
+                    cur.execute('DELETE FROM timetable WHERE date = %s AND period = %s', (date, period))
+                    
+                    # 2. テンプレ（曜日版）を更新
                     cur.execute('''
                         INSERT INTO timetable (day_of_week, period, subject, is_changed) 
-                        VALUES (%s, %s, %s, %s)
+                        VALUES (%s, %s, %s, False)
                         ON CONFLICT (day_of_week, period) DO UPDATE SET subject = EXCLUDED.subject, is_changed = False
-                    ''', (day, period, subject, False))
+                    ''', (day, period, subject))
+                
                 conn.commit()
                 return redirect(url_for('timetable'))
+
 
             # 表示用データの取得
             # 1. まずテンプレ（曜日）を読み込む
