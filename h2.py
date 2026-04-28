@@ -148,70 +148,31 @@ def chat():
             if group and group not in my_groups:
                 my_groups.append(group)
 
-            # --- POST: メッセージ・ファイル送信 ---
-                     # --- POST処理（送信時） ---
-           if request.method == 'POST':
+            # --- POST処理（送信時） ---
+            if request.method == 'POST':
                 msg_content = request.form.get('message', '')
-                file = request.files.get('file') # HTMLの name="file" を取得
+                file = request.files.get('file')
                 file_url = None
-
-                # 1. ファイルがあればCloudinaryへアップロード
                 if file and file.filename != '':
                     try:
-                        # resource_type="auto" で画像もPDFも対応
                         res = cloudinary.uploader.upload(file, resource_type="auto")
                         file_url = res.get('secure_url')
                     except Exception as e:
                         print(f"Cloudinary Error: {e}")
-
                 target = f"grp_{group}" if group else (partner if partner else "all")
                 now_str = get_now_jst().strftime('%m/%d %H:%M')
-
-                # 2. メッセージかファイルのどちらかがあれば保存
                 if msg_content or file_url:
-                    cur.execute("""
-                        INSERT INTO chat_messages (username, message, receiver, file_path, created_at) 
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (me, msg_content, target, file_url, now_str))
+                    cur.execute("INSERT INTO chat_messages (username, message, receiver, file_path, created_at) VALUES (%s, %s, %s, %s, %s)", (me, msg_content, target, file_url, now_str))
                     conn.commit()
-                
-                return redirect(url_for('chat', user=partner, group=group))
-                
-                # 文字列に変換した現在時刻
-                now_str = get_now_jst().strftime('%m/%d %H:%M')
-
-                if msg_content or file_url:
-                    try:
-                        # init_dbの定義に合わせて、username, message, file_path, created_at を使用
-                        cur.execute("""
-                            INSERT INTO chat_messages (username, message, receiver, file_path, created_at) 
-                            VALUES (%s, %s, %s, %s, %s)
-                        """, (me, msg_content, target, file_url, now_str))
-                        conn.commit()
-                    except Exception as e:
-                        print(f"DB Insert Error: {e}")
-                        conn.rollback()
-
                 return redirect(url_for('chat', user=partner, group=group))
 
-
-                     # --- GET: メッセージ表示用データ取得 ---
-                        # --- GET: メッセージ表示用データ取得 ---
+            # --- GET処理（表示時） ---
             target = f"grp_{group}" if group else (partner if partner else "all")
-            
-            # 全チャット共通：最新の50件を「IDの大きい順（新しい順）」で取得する
             if target == "all" or target.startswith("grp_"):
                 cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (target,))
             else:
-                cur.execute('''
-                    SELECT * FROM chat_messages 
-                    WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s)
-                    ORDER BY id DESC LIMIT 50
-                ''', (me, target, target, me))
-            
+                cur.execute('SELECT * FROM chat_messages WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) ORDER BY id DESC LIMIT 50', (me, target, target, me))
             raw_messages = cur.fetchall()
-            
-            # HTMLに渡す前に、取得した50件を「古い順（下が最新）」にひっくり返す
             messages = []
             for m in reversed(raw_messages):
                 messages.append({
@@ -221,70 +182,31 @@ def chat():
                     'created_at': m.get('created_at', '')
                 })
 
-    # returnの位置は with get_db() の w の真下に合わせる
-    return render_template('chat.html', 
-                           messages=messages, 
-                           partner=partner, 
-                           group=group, 
-                           my_groups=my_groups, 
-                           users=users, 
-                           last_ids=last_ids, 
-                           username=me)
+    return render_template('chat.html', messages=messages, partner=partner, group=group, my_groups=my_groups, users=users, last_ids=last_ids, username=me)
 
 @app.route('/timetable', methods=['GET', 'POST'])
 def timetable():
     if 'username' not in session: return redirect(url_for('login'))
-    
     now = get_now_jst()
     monday = now - timedelta(days=now.weekday())
     week_dates = [(monday + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(5)]
-
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-                if request.method == 'POST' and session.get('role') in ['admin', 'teacher']:
-                    date = request.form.get('date')
-                    day = request.form.get('day')
-                    period = request.form.get('period')
-                    subject = request.form.get('subject')
-                    is_changed = True if request.form.get('is_changed') == 'true' else False
-                
+            if request.method == 'POST' and session.get('role') in ['admin', 'teacher']:
+                date, day, period, subject = request.form.get('date'), request.form.get('day'), request.form.get('period'), request.form.get('subject')
+                is_changed = True if request.form.get('is_changed') == 'true' else False
                 if is_changed:
-                    # 【赤文字にする】その日限定のデータとして保存
-                    cur.execute('''
-                        INSERT INTO timetable (date, period, subject, is_changed) 
-                        VALUES (%s, %s, %s, True)
-                        ON CONFLICT (date, period) DO UPDATE SET subject = EXCLUDED.subject, is_changed = True
-                    ''', (date, period, subject))
+                    cur.execute('INSERT INTO timetable (date, period, subject, is_changed) VALUES (%s, %s, %s, True) ON CONFLICT (date, period) DO UPDATE SET subject = EXCLUDED.subject, is_changed = True', (date, period, subject))
                 else:
-                    # 【黒文字に戻す】
-                    # 1. 邪魔をしている「その日限定データ（日付版）」を削除
                     cur.execute('DELETE FROM timetable WHERE date = %s AND period = %s', (date, period))
-                    
-                    # 2. テンプレ（曜日版）を更新
-                    cur.execute('''
-                        INSERT INTO timetable (day_of_week, period, subject, is_changed) 
-                        VALUES (%s, %s, %s, False)
-                        ON CONFLICT (day_of_week, period) DO UPDATE SET subject = EXCLUDED.subject, is_changed = False
-                    ''', (day, period, subject))
-                
+                    cur.execute('INSERT INTO timetable (day_of_week, period, subject, is_changed) VALUES (%s, %s, %s, False) ON CONFLICT (day_of_week, period) DO UPDATE SET subject = EXCLUDED.subject, is_changed = False', (day, period, subject))
                 conn.commit()
                 return redirect(url_for('timetable'))
-
-
-            # 表示用データの取得
-            # 1. まずテンプレ（曜日）を読み込む
             cur.execute("SELECT * FROM timetable WHERE day_of_week IS NOT NULL")
-            t_rows = cur.fetchall()
-            table_data = { (r['day_of_week'], r['period']): {'subject': r['subject'], 'changed': False} for r in t_rows }
-            
-            # 2. 今週の変更分（日付あり）があれば上書きする
+            table_data = {(r['day_of_week'], r['period']): {'subject': r['subject'], 'changed': False} for r in cur.fetchall()}
             cur.execute("SELECT * FROM timetable WHERE date = ANY(%s)", (week_dates,))
-            c_rows = cur.fetchall()
-            changed_data = { (r['date'], r['period']): {'subject': r['subject'], 'changed': True} for r in c_rows }
-
-    days_names = ["月", "火", "水", "木", "金"]
-    return render_template('timetable.html', table=table_data, changed_data=changed_data, week_dates=week_dates, days_names=days_names, periods=range(1, 7), role=session.get('role'))
-
+            changed_data = {(r['date'], r['period']): {'subject': r['subject'], 'changed': True} for r in cur.fetchall()}
+    return render_template('timetable.html', table=table_data, changed_data=changed_data, week_dates=week_dates, days_names=["月", "火", "水", "木", "金"], periods=range(1, 7), role=session.get('role'))
 
 
 @app.route('/delete/<int:task_id>', methods=['POST'])
