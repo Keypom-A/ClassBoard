@@ -209,14 +209,20 @@ def timetable():
                 conn.commit()
                 return redirect(url_for('timetable'))
 
-            # --- GET処理（ここをHTMLの変数名に合わせる） ---
-            # 1. テンプレ（黒）
+                       # 1. テンプレ（黒）
             cur.execute("SELECT * FROM timetable WHERE day_of_week IS NOT NULL")
             table = {}
             for r in cur.fetchall():
-                idx = day_to_idx.get(r['day_of_week'])
-                if idx is not None:
+                try:
+                    # Neonに「2」と入っているなら、そのまま数値(int)に変換してキーにする
+                    idx = int(r['day_of_week'])
                     table[(idx, int(r['period']))] = {'subject': r['subject']}
+                except (ValueError, TypeError):
+                    # もし「月」などの漢字が入っていた場合のバックアップ
+                    day_to_idx = {"月": 0, "火": 1, "水": 2, "木": 3, "金": 4}
+                    idx = day_to_idx.get(r['day_of_week'])
+                    if idx is not None:
+                        table[(idx, int(r['period']))] = {'subject': r['subject']}
 
             # 2. 変更分（赤）
             cur.execute("SELECT * FROM timetable WHERE date::text = ANY(%s)", (week_dates,))
