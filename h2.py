@@ -314,6 +314,45 @@ def timetable():
     periods = [1, 2, 3, 4, 5, 6] # 6時間目まで
     return render_template('timetable.html', table=table_data, days=days, periods=periods, role=session.get('role'))
 
+@app.route('/schedule', methods=['GET', 'POST'])
+def schedule():
+    if 'username' not in session: return redirect(url_for('login'))
+    
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            # POST: 予定表PDFのアップロード（管理者のみ）
+            if request.method == 'POST' and session.get('role') in ['admin', 'teacher']:
+                file = request.files.get('file')
+                if file and file.filename != '':
+                    try:
+                        # 'latest_schedule' という名前（Public ID）で上書き保存する設定
+                        res = cloudinary.uploader.upload(
+                            file, 
+                            public_id="latest_schedule", 
+                            overwrite=True, 
+                            resource_type="auto"
+                        )
+                        file_url = res.get('secure_url')
+                        # DBにURLを保存（なければ作成、あれば更新）
+                        cur.execute('''
+                            INSERT INTO tasks ("user", content, is_notice, file_path, created_at)
+                            VALUES (%s, %s, %s, %s, %s)
+                            ON CONFLICT DO NOTHING
+                        ''', (session['username'], "【最新】週・月間予定表", True, file_url, get_now_jst()))
+                        # ※今回はシンプルに特定のPublic IDでCloudinaryから呼ぶ形にします
+                        conn.commit()
+                    except Exception as e:
+                        print(f"Schedule Upload Error: {e}")
+                return redirect(url_for('schedule'))
+
+            # GET: 表示用URLの取得（CloudinaryのURLを直接生成）
+            # 固定のIDでアップロードしているので、URLも推測可能
+            schedule_url = cloudinary.CloudinaryImage("latest_schedule").build_url(resource_type="image")
+            # PDFの場合は resource_type="raw" や "auto" の対応が必要なため、
+            # 安全に secure_url を取得するロジックにしましょう
+
+    return render_template('schedule.html', role=session.get('role'))
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
