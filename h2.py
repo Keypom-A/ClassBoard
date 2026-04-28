@@ -52,7 +52,16 @@ def init_db():
             
             # 管理者ユーザー作成
             cur.execute("INSERT INTO users (username, password, role) VALUES ('admin', '1234', 'admin') ON CONFLICT DO NOTHING")
-            
+           
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS timetable (
+                    date TEXT,            -- '2026-04-27' などの日付
+                    period INTEGER,       -- 1〜6時間目
+                    subject TEXT,
+                    is_changed BOOLEAN DEFAULT FALSE, -- 変更箇所フラグ
+                    PRIMARY KEY (date, period)
+              )
+          ''') 
             # 最後にまとめて確定
             conn.commit()
 
@@ -215,6 +224,40 @@ def chat():
                            users=users, 
                            last_ids=last_ids, 
                            username=me)
+
+@app.route('/timetable', methods=['GET', 'POST'])
+def timetable():
+    if 'username' not in session: return redirect(url_for('login'))
+    
+    # 今週の月曜日〜金曜日の日付を計算
+    now = get_now_jst()
+    monday = now - timedelta(days=now.weekday())
+    week_dates = [(monday + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(5)]
+
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            if request.method == 'POST' and session.get('role') in ['admin', 'teacher']:
+                date = request.form.get('date')
+                period = request.form.get('period')
+                subject = request.form.get('subject')
+                is_changed = True if request.form.get('is_changed') == 'true' else False
+                
+                cur.execute('''
+                    INSERT INTO timetable (date, period, subject, is_changed) 
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (date, period) 
+                    DO UPDATE SET subject = EXCLUDED.subject, is_changed = EXCLUDED.is_changed
+                ''', (date, period, subject, is_changed))
+                conn.commit()
+                return redirect(url_for('timetable'))
+
+            # 今週の日付に一致するデータだけ取得
+            cur.execute("SELECT * FROM timetable WHERE date = ANY(%s)", (week_dates,))
+            rows = cur.fetchall()
+            table_data = {(r['date'], r['period']): {'subject': r['subject'], 'changed': r['is_changed']} for r in rows}
+
+    return render_template('timetable.html', table=table_data, week_dates=week_dates, periods=range(1, 7), role=session.get('role'))
+
 
 @app.route('/delete/<int:task_id>', methods=['POST'])
 def delete_task(task_id):
