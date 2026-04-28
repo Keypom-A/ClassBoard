@@ -181,7 +181,7 @@ def chat():
                     'file_path': m.get('file_path'),
                     'created_at': m.get('created_at', '')
                 })
-    return render_template('chat.html', messages=messages, partner=partner, group=group, my_groups=my_groups, users=users, last_ids=last_ids, username=me)
+     return render_template('chat.html', messages=messages, partner=partner, group=group, my_groups=my_groups, users=users, last_ids=last_ids, username=me)
 
 @app.route('/timetable', methods=['GET', 'POST'])
 def timetable():
