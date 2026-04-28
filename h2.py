@@ -130,7 +130,7 @@ def chat():
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             # 1. ユーザーリスト取得
-            cur.execute("SELECT username FROM users WHERE role = 'student'")
+            cur.execute("SELECT username FROM users")
             users = cur.fetchall()
 
             # 2. 通知用バッジ
@@ -181,7 +181,6 @@ def chat():
                     'file_path': m.get('file_path'),
                     'created_at': m.get('created_at', '')
                 })
-
     return render_template('chat.html', messages=messages, partner=partner, group=group, my_groups=my_groups, users=users, last_ids=last_ids, username=me)
 
 @app.route('/timetable', methods=['GET', 'POST'])
@@ -206,7 +205,7 @@ def timetable():
             table_data = {(r['day_of_week'], r['period']): {'subject': r['subject'], 'changed': False} for r in cur.fetchall()}
             cur.execute("SELECT * FROM timetable WHERE date = ANY(%s)", (week_dates,))
             changed_data = {(r['date'], r['period']): {'subject': r['subject'], 'changed': True} for r in cur.fetchall()}
-    return render_template('timetable.html', table=table_data, changed_data=changed_data, week_dates=week_dates, days_names=["月", "火", "水", "木", "金"], periods=range(1, 7), role=session.get('role'))
+   return render_template('timetable.html', table=table_data, changed_data=changed_data, week_dates=week_dates, days_names=["月", "火", "水", "木", "金"], periods=range(1, 7), role=session.get('role'))
 
 
 @app.route('/delete/<int:task_id>', methods=['POST'])
