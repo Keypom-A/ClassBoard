@@ -39,7 +39,7 @@ def init_db():
             cur.execute('CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, username TEXT, message TEXT, created_at TEXT, receiver TEXT DEFAULT \'all\', file_path TEXT)')
             
             # 2. 時間割テーブルの再構築（一度消して新しい構造にする）
-            cur.execute('DROP TABLE IF EXISTS timetable') # 一度リセット
+            #cur.execute('DROP TABLE IF EXISTS timetable') # 一度リセット
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS timetable (
                 id SERIAL PRIMARY KEY,
