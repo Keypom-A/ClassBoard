@@ -39,16 +39,19 @@ def init_db():
             cur.execute('CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, username TEXT, message TEXT, created_at TEXT, receiver TEXT DEFAULT \'all\', file_path TEXT)')
             
             # 2. 時間割テーブルの再構築（一度消して新しい構造にする）
-            cur.execute('DROP TABLE IF EXISTS timetable') # 古い設定を削除
+            cur.execute('DROP TABLE IF EXISTS timetable') # 一度リセット
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS timetable (
-                    date TEXT,
-                    period INTEGER,
-                    subject TEXT,
-                    is_changed BOOLEAN DEFAULT FALSE,
-                    PRIMARY KEY (date, period)
-                )
-            ''')
+                id SERIAL PRIMARY KEY,
+                date TEXT,              -- 日付がある場合はその日限定
+                day_of_week INTEGER,    -- 0〜4。日付がない場合はテンプレとして扱う
+                period INTEGER,
+                subject TEXT,
+                is_changed BOOLEAN DEFAULT FALSE,
+                UNIQUE (date, period),
+                UNIQUE (day_of_week, period)
+              )
+          ''')
             
             # 管理者ユーザー作成
             cur.execute("INSERT INTO users (username, password, role) VALUES ('admin', '1234', 'admin') ON CONFLICT DO NOTHING")
@@ -220,7 +223,6 @@ def chat():
 def timetable():
     if 'username' not in session: return redirect(url_for('login'))
     
-    # 今週の月〜金の「日付」を計算（これが横軸になります）
     now = get_now_jst()
     monday = now - timedelta(days=now.weekday())
     week_dates = [(monday + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(5)]
@@ -228,37 +230,43 @@ def timetable():
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             if request.method == 'POST' and session.get('role') in ['admin', 'teacher']:
-                date = request.form.get('date')
+                date = request.form.get('date')   # 日付（変更用）
+                day = request.form.get('day')     # 曜日（テンプレ用）
                 period = request.form.get('period')
                 subject = request.form.get('subject')
                 is_changed = True if request.form.get('is_changed') == 'true' else False
                 
-                cur.execute('''
-                    INSERT INTO timetable (date, period, subject, is_changed) 
-                    VALUES (%s, %s, %s, %s)
-                    ON CONFLICT (date, period) 
-                    DO UPDATE SET subject = EXCLUDED.subject, is_changed = EXCLUDED.is_changed
-                ''', (date, period, subject, is_changed))
+                # 赤文字（変更）なら日付で保存、黒文字ならテンプレ(曜日)として保存
+                if is_changed:
+                    cur.execute('''
+                        INSERT INTO timetable (date, period, subject, is_changed) 
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (date, period) DO UPDATE SET subject = EXCLUDED.subject, is_changed = True
+                    ''', (date, period, subject, True))
+                else:
+                    # テンプレ（曜日）として保存
+                    cur.execute('''
+                        INSERT INTO timetable (day_of_week, period, subject, is_changed) 
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (day_of_week, period) DO UPDATE SET subject = EXCLUDED.subject, is_changed = False
+                    ''', (day, period, subject, False))
                 conn.commit()
                 return redirect(url_for('timetable'))
 
-            # 3. 今週の日付のデータを取得
+            # 表示用データの取得
+            # 1. まずテンプレ（曜日）を読み込む
+            cur.execute("SELECT * FROM timetable WHERE day_of_week IS NOT NULL")
+            t_rows = cur.fetchall()
+            table_data = { (r['day_of_week'], r['period']): {'subject': r['subject'], 'changed': False} for r in t_rows }
+            
+            # 2. 今週の変更分（日付あり）があれば上書きする
             cur.execute("SELECT * FROM timetable WHERE date = ANY(%s)", (week_dates,))
-            rows = cur.fetchall()
-            # {(日付, 時限): {'subject': 教科, 'changed': 変更フラグ}}
-            table_data = {(r['date'], r['period']): {'subject': r['subject'], 'changed': r['is_changed']} for r in rows}
+            c_rows = cur.fetchall()
+            changed_data = { (r['date'], r['period']): {'subject': r['subject'], 'changed': True} for r in c_rows }
 
     days_names = ["月", "火", "水", "木", "金"]
-    # 1〜6時間目のループ用
-    periods = range(1, 7) 
-    return render_template(
-        'timetable.html', 
-        table=table_data, 
-        week_dates=week_dates, 
-        days_names=days_names, 
-        periods=periods, 
-        role=session.get('role')
-    )
+    return render_template('timetable.html', table=table_data, changed_data=changed_data, week_dates=week_dates, days_names=days_names, periods=range(1, 7), role=session.get('role'))
+
 
 
 @app.route('/delete/<int:task_id>', methods=['POST'])
