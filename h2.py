@@ -150,20 +150,32 @@ def chat():
 
             # --- POST: メッセージ・ファイル送信 ---
                      # --- POST処理（送信時） ---
-            if request.method == 'POST':
+           if request.method == 'POST':
                 msg_content = request.form.get('message', '')
-                file = request.files.get('file')
+                file = request.files.get('file') # HTMLの name="file" を取得
                 file_url = None
 
-                # Cloudinaryへアップロード
+                # 1. ファイルがあればCloudinaryへアップロード
                 if file and file.filename != '':
                     try:
+                        # resource_type="auto" で画像もPDFも対応
                         res = cloudinary.uploader.upload(file, resource_type="auto")
                         file_url = res.get('secure_url')
                     except Exception as e:
                         print(f"Cloudinary Error: {e}")
 
                 target = f"grp_{group}" if group else (partner if partner else "all")
+                now_str = get_now_jst().strftime('%m/%d %H:%M')
+
+                # 2. メッセージかファイルのどちらかがあれば保存
+                if msg_content or file_url:
+                    cur.execute("""
+                        INSERT INTO chat_messages (username, message, receiver, file_path, created_at) 
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (me, msg_content, target, file_url, now_str))
+                    conn.commit()
+                
+                return redirect(url_for('chat', user=partner, group=group))
                 
                 # 文字列に変換した現在時刻
                 now_str = get_now_jst().strftime('%m/%d %H:%M')
@@ -230,11 +242,11 @@ def timetable():
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
                 if request.method == 'POST' and session.get('role') in ['admin', 'teacher']:
-                date = request.form.get('date')
-                day = request.form.get('day')
-                period = request.form.get('period')
-                subject = request.form.get('subject')
-                is_changed = True if request.form.get('is_changed') == 'true' else False
+                    date = request.form.get('date')
+                    day = request.form.get('day')
+                    period = request.form.get('period')
+                    subject = request.form.get('subject')
+                    is_changed = True if request.form.get('is_changed') == 'true' else False
                 
                 if is_changed:
                     # 【赤文字にする】その日限定のデータとして保存
