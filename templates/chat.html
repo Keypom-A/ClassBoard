@@ -87,13 +87,21 @@
                 {% endfor %}
             </div>
 
-            <h3>Users</h3>
-            {% for u in users %}
-            <a href="/chat?user={{ u.username }}" class="chat-link {% if partner == u.username %}active{% endif %}" data-rx="{{ u.username }}" data-lastid="{{ last_ids.get(u.username, 0) }}">
-                <span>👤 {{ u.username }}</span>
-                <span class="badge-notify" style="display:none;">!</span>
-            </a>
-            {% endfor %}
+           <h3>Users</h3>
+           {% for u in users %}
+           <a href="/chat?user={{ u.username }}" class="chat-link {% if partner == u.username %}active{% endif %}" data-rx="{{ u.username }}" data-lastid="{{ last_ids.get(u.username, 0) }}">
+           <span>
+               {# 管理者の場合は 👑 (一例)、それ以外は 👤 #}
+               {% if u.role == 'admin' %}
+                   👑
+               {% else %}
+                   👤
+               {% endif %}
+               {{ u.username }}
+           </span>
+           <span class="badge-notify" style="display:none;">!</span>
+       </a>
+       {% endfor %}
         </div>
 
         <div class="main-chat">
