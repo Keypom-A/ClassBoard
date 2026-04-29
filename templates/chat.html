@@ -94,6 +94,8 @@
             <!--管理者の場合は 👑 (一例)、それ以外は 👤-->
                {% if u.role == 'admin' %}
                    ✅
+               {% elif u.role == 'teacher' %}
+                   👨‍🏫
                {% else %}
                    👤
                {% endif %}
