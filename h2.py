@@ -53,9 +53,6 @@ def init_db():
               )
           ''')
             
-            # 管理者ユーザー作成
-            cur.execute("INSERT INTO users (username, password, role) VALUES ('admin', '1234', 'admin') ON CONFLICT DO NOTHING")
-            
             conn.commit()
 
 
