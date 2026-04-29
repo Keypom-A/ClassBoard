@@ -130,7 +130,7 @@ def chat():
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             # 1. ユーザーリスト取得
-            cur.execute("SELECT username FROM users")
+            cur.execute("SELECT username role FROM users")
             users = cur.fetchall()
 
             # 2. 通知用バッジ
