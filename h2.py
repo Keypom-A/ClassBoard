@@ -7,6 +7,7 @@ import cloudinary
 import cloudinary.uploader
 import json
 import urllib.request
+from flask import jsonify
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -64,31 +65,30 @@ init_db()
 def get_now_jst():
     return datetime.utcnow() + timedelta(hours=9)
 
+import json
+import urllib.request
+from flask import jsonify
+
 @app.route("/api/weather")
 def get_weather_api():
-    """OMAPIのデータをサーバー側で中継する"""
+    """OMAPIをサーバー側で中継する（エラー対策強化版）"""
     try:
-        # 郡山市の緯度・経度を指定
-        lat = 37.4005
-        lon = 140.3600
+        # 郡山市の座標
+        lat, lon = 37.4005, 140.3600
         url = f"https://open-meteo.com{lat}&longitude={lon}&current_weather=true&timezone=Asia%2FTokyo"
 
-        # 相手サーバーに拒否されないよう設定
-        req = urllib.request.Request(
-            url, headers={"User-Agent": "Mozilla/5.0"}
-        )
-
-        with urllib.request.urlopen(req, timeout=3) as response:
-            return (
-                response.read().decode(),
-                200,
-                {"Content-Type": "application/json"},
-            )
+        # ヘッダーを付けて確実にアクセス
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        
+        # タイムアウトを長めに設定
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            return jsonify(data)  # Flaskのjsonifyを使って確実に返す
+            
     except Exception as e:
-        return (
-            json.dumps({"error": str(e)}),
-            500,
-            {"Content-Type": "application/json"},
+        # Renderのログにエラー内容を書き出す
+        print(f"--- Weather API Detail Error ---: {str(e)}")
+        return jsonify({"error": "Failed to fetch weather", "detail": str(e)}), 500
         )
 @app.route("/")
 def index():
