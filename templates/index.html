@@ -147,7 +147,7 @@
         {% endif %}
     </div>
 
-    <!-- 既存のスクリプト -->
+      <!-- 既存のスクリプトはそのまま -->
     <script>
         function toggleFile() {
             const check = document.getElementById('noticeCheck');
@@ -168,25 +168,24 @@
         const toggleBtn = document.getElementById('dark-mode-toggle');
         const toggleIcon = document.getElementById('toggle-icon');
 
-// 1. ページ読み込み時の処理
+        // ページ読み込み時に保存されたテーマを適用
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') {
-            document.documentElement.classList.add('dark-theme'); // ここを変更
+            document.documentElement.classList.add('dark-theme'); // ここを html に変更
             toggleIcon.textContent = '☀️';
-}
+        }
 
-// 2. ボタンクリック時の処理
+        // ボタンクリック時の処理
         toggleBtn.addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark-theme'); // ここを変更
-    
-        if (document.documentElement.classList.contains('dark-theme')) { // ここを変更
-            localStorage.setItem('theme', 'dark');
-            toggleIcon.textContent = '☀️';
-        } else {
-            localStorage.setItem('theme', 'light');
-            toggleIcon.textContent = '🌙';
-    }
-});
+            document.documentElement.classList.toggle('dark-theme'); // ここを html に変更
+            
+            if (document.documentElement.classList.contains('dark-theme')) {
+                localStorage.setItem('theme', 'dark');
+                toggleIcon.textContent = '☀️';
+            } else {
+                localStorage.setItem('theme', 'light');
+                toggleIcon.textContent = '🌙';
+            }
+        });
     </script>
-</body>
 </html>
