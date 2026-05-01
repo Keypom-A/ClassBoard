@@ -5,6 +5,8 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from datetime import datetime, timedelta
 import cloudinary
 import cloudinary.uploader
+import json
+import urllib.request
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -63,6 +65,30 @@ def get_now_jst():
     return datetime.utcnow() + timedelta(hours=9)
 
 @app.route('/')
+weather_data = {"temp": "--", "text": "取得失敗"}
+try:
+    # 緯度・経度（例：東京）
+    lat, lon = 35.6895, 139.6917
+    url = f"https://open-meteo.com{lat}&longitude={lon}&current_weather=true&timezone=Asia%2FTokyo"
+
+    with urllib.request.urlopen(url, timeout=3) as response:
+        data = json.loads(response.read().decode())
+        current = data.get("current_weather", {})
+        
+        # 天気コードの変換
+        code = current.get("weathercode", 0)
+        weather_map = {
+            0: "☀️ 快晴", 1: "🌤 晴れ", 2: "⛅ 曇り", 3: "☁️ 曇り",
+            45: "🌫 霧", 48: "🌫 霧", 51: "🌦 霧雨", 53: "🌦 霧雨",
+            55: "🌦 霧雨", 61: "🌧 小雨", 63: "🌧 雨", 65: "🌧 大雨",
+            71: "🌨 雪", 73: "🌨 雪", 75: "🌨 豪雪", 80: "🌦 にわか雨",
+            81: "🌦 にわか雨", 82: "🌦 激しい雨", 95: "🌩 雷雨"
+        }
+        
+        weather_data["temp"] = current.get("temperature", "--")
+        weather_data["text"] = weather_map.get(code, "不明")
+except Exception as e:
+    print(f"天気取得エラー: {e}")
 def index():
     if 'username' not in session: return redirect(url_for('login'))
     with get_db() as conn:
