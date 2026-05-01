@@ -158,6 +158,9 @@
     </div>
 
     <script>
+        if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark-theme');
+    }
         function toggleMenu() {
             document.getElementById('sidebar').classList.toggle('open');
             document.getElementById('overlay').classList.toggle('open');
