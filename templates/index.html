@@ -157,31 +157,28 @@
         }
     </script>
 
-    <!-- ☀️ 天気予報表示用の枠（3日間対応） -->
-    <div id="weather-box" style="position: fixed; top: 15px; left: 15px; background: rgba(255,255,255,0.8); padding: 8px 12px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; color: #333; display: none; font-size: 13px;">
-        <div style="font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 3px;">📅 天気予報</div>
-        <div id="weather-list"></div>
+        <!-- ☀️ 天気予報の枠（必ず script の前に置く） -->
+    <div id="weather-box" style="position: fixed; top: 15px; left: 15px; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; color: #333; display: none;">
+        <span id="weather-text" style="font-weight: bold;">取得中...</span>
+        <span id="weather-temp" style="margin-left: 5px;">--℃</span>
     </div>
-    
-    <!-- 🌙 ダークモード切替ボタン（画面右上に固定表示） -->
+
+    <!-- 🌙 ダークモードボタン -->
     <div style="position: fixed; top: 15px; right: 15px; z-index: 1000;">
         <button id="dark-mode-toggle" class="dark-mode-btn" title="ダークモード切替">
             <span id="toggle-icon">🌙</span>
         </button>
     </div>
 
-    <!-- 🛠️ 統合スクリプト（天気 ＋ ダークモード） -->
     <script>
-              // --- 1. 天気予報の取得（OMAPI連携・自サーバー経由） ---
+        // --- 1. 天気取得関数 ---
         async function fetchWeather() {
-            const url = "/api/weather"; // 自分のFlaskアプリを叩く
-
             try {
-                const response = await fetch(url);
+                const response = await fetch("/api/weather");
+                if (!response.ok) throw new Error('Network response was not ok');
+                
                 const data = await response.json();
                 const current = data.current_weather;
-
-                // OMAPIの天気コードを日本語に変換するマップ
                 const weatherMap = {
                     0: "☀️ 快晴", 1: "🌤 晴れ", 2: "⛅ 曇り", 3: "☁️ 曇り",
                     45: "🌫 霧", 48: "🌫 霧", 51: "🌦 霧雨", 53: "🌦 霧雨",
@@ -190,44 +187,34 @@
                     81: "🌦 にわか雨", 82: "🌦 激しい雨", 95: "🌩 雷雨"
                 };
 
-                // 画面のテキストを書き換える
-                const code = current.weathercode;
-                document.getElementById('weather-text').innerText = weatherMap[code] || "不明";
-                document.getElementById('weather-temp').innerText = `${current.temperature}℃`;
-                
-                // 枠を表示する
-                document.getElementById('weather-box').style.display = "block"; 
+                document.getElementById('weather-text').textContent = weatherMap[current.weathercode] || "不明";
+                document.getElementById('weather-temp').textContent = `${current.temperature}℃`;
+                document.getElementById('weather-box').style.display = "block";
             } catch (error) {
-                console.error("天気取得エラー:", error);
-                document.getElementById('weather-text').innerText = "取得失敗";
+                console.error("Fetch error:", error);
+                document.getElementById('weather-text').textContent = "取得失敗";
                 document.getElementById('weather-box').style.display = "block";
             }
         }
 
-        // --- 2. ダークモードの制御 ---
+        // --- 2. ダークモード制御 ---
+        const htmlEl = document.documentElement;
         const toggleBtn = document.getElementById('dark-mode-toggle');
         const toggleIcon = document.getElementById('toggle-icon');
 
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') {
-            document.documentElement.classList.add('dark-theme');
+        if (localStorage.getItem('theme') === 'dark') {
+            htmlEl.classList.add('dark-theme');
             toggleIcon.textContent = '☀️';
         }
 
         toggleBtn.addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark-theme');
-            
-            if (document.documentElement.classList.contains('dark-theme')) {
-                localStorage.setItem('theme', 'dark');
-                toggleIcon.textContent = '☀️';
-            } else {
-                localStorage.setItem('theme', 'light');
-                toggleIcon.textContent = '🌙';
-            }
+            const isDark = htmlEl.classList.toggle('dark-theme');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            toggleIcon.textContent = isDark ? '☀️' : '🌙';
         });
 
-        // ページの読み込み完了時に天気を実行
-        fetchWeather();
+        // ページ読み込み完了時に実行
+        window.addEventListener('DOMContentLoaded', fetchWeather);
     </script>
 </body>
 </html>
