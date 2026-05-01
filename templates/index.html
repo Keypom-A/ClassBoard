@@ -125,7 +125,7 @@
             </table>
         </div>
 
-               <!-- 🔧 管理者ツール（adminの時だけ表示） -->
+    <!-- 🔧 管理者ツール（adminの時だけ表示） -->
         {% if role == 'admin' %}
         <div class="admin-box">
             <h4 style="color: #e74c3c; margin-top: 0;">🔧 システム管理者ツール</h4>
@@ -147,12 +147,46 @@
         {% endif %}
     </div>
 
+    <!-- 既存のスクリプト -->
     <script>
         function toggleFile() {
             const check = document.getElementById('noticeCheck');
             const area = document.getElementById('fileInputArea');
             if(area) area.style.display = check.checked ? 'block' : 'none';
         }
+    </script>
+
+    <!-- 🌙 ダークモード切替ボタン（画面右上に固定表示） -->
+    <div style="position: fixed; top: 15px; right: 15px; z-index: 1000;">
+        <button id="dark-mode-toggle" class="dark-mode-btn" title="ダークモード切替">
+            <span id="toggle-icon">🌙</span>
+        </button>
+    </div>
+
+    <!-- 🌙 ダークモード切り替えスクリプト -->
+    <script>
+        const toggleBtn = document.getElementById('dark-mode-toggle');
+        const toggleIcon = document.getElementById('toggle-icon');
+
+        // ページ読み込み時に保存されたテーマを適用
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-theme');
+            toggleIcon.textContent = '☀️';
+        }
+
+        // ボタンクリック時の処理
+        toggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-theme');
+            
+            if (document.body.classList.contains('dark-theme')) {
+                localStorage.setItem('theme', 'dark');
+                toggleIcon.textContent = '☀️';
+            } else {
+                localStorage.setItem('theme', 'light');
+                toggleIcon.textContent = '🌙';
+            }
+        });
     </script>
 </body>
 </html>
