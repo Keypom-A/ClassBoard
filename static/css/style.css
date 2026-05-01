@@ -1,50 +1,81 @@
-/* --- 🌙 ボタン連動で適用されるダークモードデザイン --- */
-.dark-theme, .dark-theme body {
-    background: #1a1a1a !important;
-    color: #f0f0f0 !important;
+/* --- 1. 通常モード（ライトモード）のデザイン --- */
+body {
+    background: #f0f2f5;
+    color: #333;
+    margin: 0;
+    font-family: sans-serif;
+    transition: background-color 0.3s, color 0.3s;
 }
 
-.dark-theme .sidebar {
-    background: #2d2d2d !important;
-    border-right-color: #444 !important;
-    color: #f0f0f0 !important;
+.sidebar {
+    background: #ffffff;
+    border-right: 1px solid #ddd;
+    color: #333;
 }
 
-.dark-theme .sidebar a {
-    color: #ccc !important;
+.sidebar a {
+    color: #444;
 }
 
-.dark-theme .sidebar a:hover {
-    background: #3d3d3d !important;
+.sidebar a:hover {
+    background: #f0f4f8;
 }
 
-.dark-theme .main-chat {
-    background: #1a1a1a !important;
+.main-chat {
+    background: #f0f2f5;
 }
 
-.dark-theme .chat-header, 
-.dark-theme .chat-input-area {
-    background: #2d2d2d !important;
-    border-color: #444 !important;
+.chat-header, .chat-input-area {
+    background: #ffffff;
+    border-color: #ddd;
 }
 
-.dark-theme .message {
-    background: #3d3d3d !important;
-    color: #fff !important;
-    box-shadow: none !important;
+.message {
+    background: #ffffff;
+    color: #333;
 }
 
-.dark-theme .my-msg {
-    background: #056162 !important; /* ダークな緑 */
+.my-msg {
+    background: #dcf8c6;
 }
 
-.dark-theme input[type="text"] {
-    background: #3d3d3d !important;
-    color: #fff !important;
-    border-color: #555 !important;
+input[type="text"] {
+    background: #f8f9fa;
+    color: #333;
+    border: 1px solid #ddd;
 }
 
-.dark-theme table {
-    background: #2d2d2d !important;
-    color: #f0f0f0 !important;
+table {
+    background: #ffffff;
+    color: #333;
+}
+
+/* --- 2. 🌙 切り替えボタン自体のデザイン --- */
+.dark-mode-btn {
+    background: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+
+/* --- 3. 🌙 画面全体を完全に反転させるダークモード設定 --- */
+html.dark-theme {
+    filter: invert(1) hue-rotate(180deg) !important;
+}
+
+/* 画像、アイコン、ボタン、動画など、反転させたくない要素は元に戻す */
+html.dark-theme img,
+html.dark-theme video,
+html.dark-theme .dark-mode-btn,
+html.dark-theme iframe {
+    filter: invert(1) hue-rotate(180deg) !important;
 }
