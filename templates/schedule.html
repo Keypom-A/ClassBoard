@@ -35,5 +35,13 @@
 
         <a href="/" class="btn-back">← 戻る</a>
     </div>
+    <!-- 🌙 ダークモード状態の読み込みスクリプト -->
+　　<script>
+    // ページ読み込み時に保存されたテーマ（dark）があれば適用する
+    if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark-theme');
+    }
+</script>
+
 </body>
 </html>
