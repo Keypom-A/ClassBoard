@@ -11,6 +11,7 @@ body {
     background: #ffffff;
     border-right: 1px solid #ddd;
     color: #333;
+    position: relative; /* ボタン配置用 */
 }
 
 .sidebar a {
@@ -51,54 +52,83 @@ table {
 }
 
 
-/* --- 🌙 端末がダークモードの時に自動適用されるデザイン --- */
-@media (prefers-color-scheme: dark) {
-    body {
-        background: #1a1a1a;
-        color: #f0f0f0;
-    }
+/* --- 🌙 ダークモード切り替えボタンのスタイル --- */
+.dark-mode-btn {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    outline: none;
+}
 
-    .sidebar {
-        background: #2d2d2d;
-        border-right-color: #444;
-        color: #f0f0f0;
-    }
+.dark-mode-btn:hover {
+    background: #f0f4f8;
+}
 
-    .sidebar a {
-        color: #ccc;
-    }
 
-    .sidebar a:hover {
-        background: #3d3d3d;
-    }
+/* --- 🌙 ボタン連動で適用されるダークモードデザイン --- */
+body.dark-theme {
+    background: #1a1a1a;
+    color: #f0f0f0;
+}
 
-    .main-chat {
-        background: #1a1a1a;
-    }
+body.dark-theme .sidebar {
+    background: #2d2d2d;
+    border-right-color: #444;
+    color: #f0f0f0;
+}
 
-    .chat-header, .chat-input-area {
-        background: #2d2d2d;
-        border-color: #444;
-    }
+body.dark-theme .sidebar a {
+    color: #ccc;
+}
 
-    .message {
-        background: #3d3d3d;
-        color: #fff;
-        box-shadow: none;
-    }
+body.dark-theme .sidebar a:hover {
+    background: #3d3d3d;
+}
 
-    .my-msg {
-        background: #056162; /* ダークな緑 */
-    }
+body.dark-theme .main-chat {
+    background: #1a1a1a;
+}
 
-    input[type="text"] {
-        background: #3d3d3d;
-        color: #fff;
-        border-color: #555;
-    }
+body.dark-theme .chat-header, 
+body.dark-theme .chat-input-area {
+    background: #2d2d2d;
+    border-color: #444;
+}
 
-    table {
-        background: #2d2d2d;
-        color: #f0f0f0;
-    }
+body.dark-theme .message {
+    background: #3d3d3d;
+    color: #fff;
+    box-shadow: none;
+}
+
+body.dark-theme .my-msg {
+    background: #056162; /* ダークな緑 */
+}
+
+body.dark-theme input[type="text"] {
+    background: #3d3d3d;
+    color: #fff;
+    border-color: #555;
+}
+
+body.dark-theme table {
+    background: #2d2d2d;
+    color: #f0f0f0;
+}
+
+body.dark-theme .dark-mode-btn {
+    border-color: #555;
+    color: #fff;
+}
+
+body.dark-theme .dark-mode-btn:hover {
+    background: #3d3d3d;
 }
