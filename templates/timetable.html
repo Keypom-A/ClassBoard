@@ -104,5 +104,13 @@
         document.getElementById('form-' + date + '-' + period).submit();
     }
     </script>
+    <!-- 🌙 ダークモード状態の読み込みスクリプト -->
+　　<script>
+    // ページ読み込み時に保存されたテーマ（dark）があれば適用する
+    if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark-theme');
+    }
+</script>
+
 </body>
 </html>
