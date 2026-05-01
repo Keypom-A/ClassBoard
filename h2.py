@@ -108,6 +108,7 @@ def index():
         username=session["username"],
         role=session["role"],
         now=now_str,
+        weather={"temp": "--", "text": "--"},
     )
 @app.route('/add', methods=['POST'])
 def add_task():
