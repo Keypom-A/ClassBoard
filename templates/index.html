@@ -157,12 +157,12 @@
         }
     </script>
 
-    <!-- ☀️ 天気予報表示用の枠 -->
-    <div id="weather-box" style="position: fixed; top: 15px; left: 15px; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; color: #333; display: none;">
-        <span id="weather-text" style="font-weight: bold;">取得中...</span>
-        <span id="weather-temp" style="margin-left: 5px;">--℃</span>
+    <!-- ☀️ 天気予報表示用の枠（3日間対応） -->
+    <div id="weather-box" style="position: fixed; top: 15px; left: 15px; background: rgba(255,255,255,0.8); padding: 8px 12px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; color: #333; display: none; font-size: 13px;">
+        <div style="font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 3px;">📅 天気予報</div>
+        <div id="weather-list"></div>
     </div>
-
+    
     <!-- 🌙 ダークモード切替ボタン（画面右上に固定表示） -->
     <div style="position: fixed; top: 15px; right: 15px; z-index: 1000;">
         <button id="dark-mode-toggle" class="dark-mode-btn" title="ダークモード切替">
