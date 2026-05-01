@@ -65,57 +65,50 @@ def get_now_jst():
     return datetime.utcnow() + timedelta(hours=9)
 
 @app.route('/')
+@app.route("/")
 def index():
-    if"username"not in session:
-       return redirect(url_for("login"))
-    weather_data = {"temp": "--", "text": "取得失敗"}
-    try:
-    # 緯度・経度（例：東京）
-        lat, lon = 35.6895, 139.6917
-        url = f"https://open-meteo.com{lat}&longitude={lon}&current_weather=true&timezone=Asia%2FTokyo"
+    if "username" not in session:
+        return redirect(url_for("login"))
 
-        with urllib.request.urlopen(url, timeout=3) as response:
-            data = json.loads(response.read().decode())
-            current = data.get("current_weather", {})
-        
-        # 天気コードの変換
-            code = current.get("weathercode", 0)
-            weather_map = {
-            0: "☀️ 快晴", 1: "🌤 晴れ", 2: "⛅ 曇り", 3: "☁️ 曇り",
-            45: "🌫 霧", 48: "🌫 霧", 51: "🌦 霧雨", 53: "🌦 霧雨",
-            55: "🌦 霧雨", 61: "🌧 小雨", 63: "🌧 雨", 65: "🌧 大雨",
-            71: "🌨 雪", 73: "🌨 雪", 75: "🌨 豪雪", 80: "🌦 にわか雨",
-            81: "🌦 にわか雨", 82: "🌦 激しい雨", 95: "🌩 雷雨"
-        }
-        
-        weather_data["temp"] = current.get("temperature", "--")
-        weather_data["text"] = weather_map.get(code, "不明")
-except Exception as e:
-    print(f"天気取得エラー: {e}")
-def index():
-    if 'username' not in session: return redirect(url_for('login'))
+    # --- 既存のDB処理 ---
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute('SELECT role FROM users WHERE username = %s', (session['username'],))
+            cur.execute(
+                "SELECT role FROM users WHERE username = %s",
+                (session["username"],),
+            )
             user_data = cur.fetchone()
-            if user_data: session['role'] = user_data['role']
-            
-            now_jst = get_now_jst()
-            now_str = now_jst.strftime('%Y-%m-%dT%H:%M')
-            
-            cur.execute('SELECT * FROM tasks WHERE is_notice = TRUE ORDER BY created_at DESC')
-            notices = [dict(r) for r in cur.fetchall()]
-            cur.execute('SELECT * FROM tasks WHERE is_notice = FALSE')
-            all_tasks = [dict(r) for r in cur.fetchall()]
-            
-    def sort_logic(x):
-        d, p = x['deadline'], x.get('priority', 1)
-        if d == "-": return (2, -p, "9999")
-        if d < now_str: return (0, -p, d)
-        return (1, -p, d)
-    all_tasks.sort(key=sort_logic)
-    return render_template('index.html', notices=notices, tasks=all_tasks, username=session['username'], role=session['role'], now=now_str)
+            if user_data:
+                session["role"] = user_data["role"]
 
+            now_jst = get_now_jst()
+            now_str = now_jst.strftime("%Y-%m-%dT%H:%M")
+
+            cur.execute(
+                "SELECT * FROM tasks WHERE is_notice = TRUE ORDER BY created_at DESC"
+            )
+            notices = [dict(r) for r in cur.fetchall()]
+            cur.execute("SELECT * FROM tasks WHERE is_notice = FALSE")
+            all_tasks = [dict(r) for r in cur.fetchall()]
+
+    def sort_logic(x):
+        d, p = x["deadline"], x.get("priority", 1)
+        if d == "-":
+            return (2, -p, "9999")
+        if d < now_str:
+            return (0, -p, d)
+        return (1, -p, d)
+
+    all_tasks.sort(key=sort_logic)
+
+    return render_template(
+        "index.html",
+        notices=notices,
+        tasks=all_tasks,
+        username=session["username"],
+        role=session["role"],
+        now=now_str,
+    )
 @app.route('/add', methods=['POST'])
 def add_task():
     if 'username' not in session: return redirect(url_for('login'))
