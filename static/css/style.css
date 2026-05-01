@@ -66,33 +66,35 @@ table {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* レイアウトを壊さないダークモード設定 */
-html.dark-theme body {
-    background: #1a1a1a !important;
-    color: #f0f0f0 !important;
+/* --- 🌙 ダークモード：全体反転（型崩れ対策済み） --- */
+html.dark-theme {
+    /* 画面全体をひっくり返す */
+    filter: invert(1) hue-rotate(180deg);
 }
 
-/* 予定追加エリア（admin-box等）の背景を維持、または暗く調整 */
-html.dark-theme .admin-box, 
-html.dark-theme .form-container {
-    background: #2d2d2d !important;
-    color: #f0f0f0 !important;
-    border-color: #444 !important;
-}
-
-/* 入力欄が小さくなるのを防ぐため、幅を固定・維持 */
-.admin-box input, .admin-box select, .admin-box textarea {
-    width: 100% !important;
-    box-sizing: border-box; /* paddingでサイズが変わるのを防ぐ */
-}
-
-/* 画像、アイコン、ボタン、動画など、反転させたくない要素は元に戻す */
-html.dark-theme img,
-html.dark-theme video,
-html.dark-theme .dark-mode-btn,
+/* 反転させたくない要素（画像やアイコン、ボタン）を再反転して元に戻す */
+html.dark-theme img, 
+html.dark-theme .dark-mode-btn, 
 html.dark-theme iframe {
-    filter: invert(1) hue-rotate(180deg) !important;
+    filter: invert(1) hue-rotate(180deg);
 }
+
+/* 【重要】反転によるサイズ計算の狂いを防ぐおまじない */
+html.dark-theme body {
+    /* 反転しても背景が真っ白に見えないように色を固定 */
+    background-color: #f0f2f5; 
+    /* 予定追加欄などの幅が維持されるように設定 */
+    width: 100%;
+    overflow-x: hidden;
+}
+
+/* 入力欄（admin-box）が縮むのを物理的に防ぐ */
+.admin-box, .form-container {
+    min-width: 300px; /* スマホでの最小幅を確保 */
+    width: 95% !important;
+    box-sizing: border-box;
+}
+
 /* --- 📱 スマホ・レスポンシブ対応 --- */
 
 /* 全体のコンテナ（PCでは横並び、スマホでは縦にする） */
