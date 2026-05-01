@@ -194,6 +194,7 @@
                 console.error("Fetch error:", error);
                 document.getElementById('weather-text').textContent = "取得失敗";
                 document.getElementById('weather-box').style.display = "block";
+                document.getElementById('weather-box').style.display = "block"; // エラーでも枠は出す
             }
         }
 
