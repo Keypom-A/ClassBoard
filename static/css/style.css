@@ -1,134 +1,50 @@
-/* --- 共通の基本デザイン（ライトモード基準） --- */
-body {
-    background: #f0f2f5;
-    color: #333;
-    margin: 0;
-    font-family: sans-serif;
-    transition: background-color 0.3s, color 0.3s;
-}
-
-.sidebar {
-    background: #ffffff;
-    border-right: 1px solid #ddd;
-    color: #333;
-    position: relative; /* ボタン配置用 */
-}
-
-.sidebar a {
-    color: #444;
-}
-
-.sidebar a:hover {
-    background: #f0f4f8;
-}
-
-.main-chat {
-    background: #f0f2f5;
-}
-
-.chat-header, .chat-input-area {
-    background: #ffffff;
-    border-color: #ddd;
-}
-
-.message {
-    background: #ffffff;
-    color: #333;
-}
-
-.my-msg {
-    background: #dcf8c6;
-}
-
-input[type="text"] {
-    background: #f8f9fa;
-    color: #333;
-    border: 1px solid #ddd;
-}
-
-table {
-    background: #ffffff;
-    color: #333;
-}
-
-
-/* --- 🌙 ダークモード切り替えボタンのスタイル --- */
-.dark-mode-btn {
-    background: none;
-    border: 1px solid #ddd;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    cursor: pointer;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    outline: none;
-}
-
-.dark-mode-btn:hover {
-    background: #f0f4f8;
-}
-
-
 /* --- 🌙 ボタン連動で適用されるダークモードデザイン --- */
-body.dark-theme {
-    background: #1a1a1a;
-    color: #f0f0f0;
+.dark-theme, .dark-theme body {
+    background: #1a1a1a !important;
+    color: #f0f0f0 !important;
 }
 
-body.dark-theme .sidebar {
-    background: #2d2d2d;
-    border-right-color: #444;
-    color: #f0f0f0;
+.dark-theme .sidebar {
+    background: #2d2d2d !important;
+    border-right-color: #444 !important;
+    color: #f0f0f0 !important;
 }
 
-body.dark-theme .sidebar a {
-    color: #ccc;
+.dark-theme .sidebar a {
+    color: #ccc !important;
 }
 
-body.dark-theme .sidebar a:hover {
-    background: #3d3d3d;
+.dark-theme .sidebar a:hover {
+    background: #3d3d3d !important;
 }
 
-body.dark-theme .main-chat {
-    background: #1a1a1a;
+.dark-theme .main-chat {
+    background: #1a1a1a !important;
 }
 
-body.dark-theme .chat-header, 
-body.dark-theme .chat-input-area {
-    background: #2d2d2d;
-    border-color: #444;
+.dark-theme .chat-header, 
+.dark-theme .chat-input-area {
+    background: #2d2d2d !important;
+    border-color: #444 !important;
 }
 
-body.dark-theme .message {
-    background: #3d3d3d;
-    color: #fff;
-    box-shadow: none;
+.dark-theme .message {
+    background: #3d3d3d !important;
+    color: #fff !important;
+    box-shadow: none !important;
 }
 
-body.dark-theme .my-msg {
-    background: #056162; /* ダークな緑 */
+.dark-theme .my-msg {
+    background: #056162 !important; /* ダークな緑 */
 }
 
-body.dark-theme input[type="text"] {
-    background: #3d3d3d;
-    color: #fff;
-    border-color: #555;
+.dark-theme input[type="text"] {
+    background: #3d3d3d !important;
+    color: #fff !important;
+    border-color: #555 !important;
 }
 
-body.dark-theme table {
-    background: #2d2d2d;
-    color: #f0f0f0;
-}
-
-body.dark-theme .dark-mode-btn {
-    border-color: #555;
-    color: #fff;
-}
-
-body.dark-theme .dark-mode-btn:hover {
-    background: #3d3d3d;
+.dark-theme table {
+    background: #2d2d2d !important;
+    color: #f0f0f0 !important;
 }
