@@ -93,3 +93,64 @@ html.dark-theme .dark-mode-btn,
 html.dark-theme iframe {
     filter: invert(1) hue-rotate(180deg) !important;
 }
+/* --- 📱 スマホ・レスポンシブ対応 --- */
+
+/* 全体のコンテナ（PCでは横並び、スマホでは縦にする） */
+.main-container {
+    display: flex;
+    flex-wrap: wrap; /* 画面が狭くなったら折り返す */
+    width: 100%;
+}
+
+/* サイドバーの設定 */
+.sidebar {
+    width: 250px; /* PCサイズ */
+    min-height: 100vh;
+}
+
+/* メインコンテンツエリア */
+.main-content {
+    flex: 1; /* 残りの幅を全部使う */
+    min-width: 300px;
+    padding: 10px;
+}
+
+/* フォームや入力欄が画面からはみ出さないようにする */
+input[type="text"], 
+input[type="datetime-local"], 
+select, 
+textarea,
+.admin-box {
+    width: 100% !important; /* 親要素の幅いっぱいに広がる */
+    max-width: 100%;
+    box-sizing: border-box; /* paddingを含めて100%にする */
+}
+
+/* テーブル（時間割など）がはみ出る場合は横スクロールさせる */
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* --- 📱 画面幅が 768px 以下の時の設定（スマホ用） --- */
+@media screen and (max-width: 768px) {
+    .sidebar {
+        width: 100%; /* サイドバーを上に持ってくる、または隠す */
+        min-height: auto;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    /* 文字サイズをスマホで見やすい大きさに調整 */
+    body {
+        font-size: 16px;
+    }
+    
+    /* 予定追加ボタンなどを押しやすく大きくする */
+    .btn {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 5px;
+    }
+}
+
