@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- 各ページ独自のCSSやタイトルを入れる場所 -->
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+    <!-- 🌙 共通のダークモード切替ボタン（画面右上に固定表示） -->
+    <div style="position: fixed; top: 15px; right: 15px; z-index: 1000;">
+        <button id="dark-mode-toggle" class="dark-mode-btn" title="ダークモード切替">
+            <span id="toggle-icon">🌙</span>
+        </button>
+    </div>
+
+    <!-- 各ページのメインコンテンツが入る場所 -->
+    {% block content %}{% endblock %}
+
+    <!-- 🌙 ダークモード切り替えの共通スクリプト -->
+    <script>
+        const toggleBtn = document.getElementById('dark-mode-toggle');
+        const toggleIcon = document.getElementById('toggle-icon');
+
+        // 1. ページ読み込み時に保存されたテーマを適用
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-theme');
+            toggleIcon.textContent = '☀️';
+        }
+
+        // 2. ボタンクリック時の処理
+        toggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-theme');
+            
+            if (document.body.classList.contains('dark-theme')) {
+                localStorage.setItem('theme', 'dark');
+                toggleIcon.textContent = '☀️';
+            } else {
+                localStorage.setItem('theme', 'light');
+                toggleIcon.textContent = '🌙';
+            }
+        });
+    </script>
+</body>
+</html>
