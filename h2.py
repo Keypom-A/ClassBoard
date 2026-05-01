@@ -8,6 +8,7 @@ import cloudinary.uploader
 import json
 import urllib.request
 from flask import jsonify
+import requests
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
