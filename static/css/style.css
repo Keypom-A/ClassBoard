@@ -1,0 +1,104 @@
+/* --- 共通の基本デザイン（ライトモード基準） --- */
+body {
+    background: #f0f2f5;
+    color: #333;
+    margin: 0;
+    font-family: sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.sidebar {
+    background: #ffffff;
+    border-right: 1px solid #ddd;
+    color: #333;
+}
+
+.sidebar a {
+    color: #444;
+}
+
+.sidebar a:hover {
+    background: #f0f4f8;
+}
+
+.main-chat {
+    background: #f0f2f5;
+}
+
+.chat-header, .chat-input-area {
+    background: #ffffff;
+    border-color: #ddd;
+}
+
+.message {
+    background: #ffffff;
+    color: #333;
+}
+
+.my-msg {
+    background: #dcf8c6;
+}
+
+input[type="text"] {
+    background: #f8f9fa;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+table {
+    background: #ffffff;
+    color: #333;
+}
+
+
+/* --- 🌙 端末がダークモードの時に自動適用されるデザイン --- */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #1a1a1a;
+        color: #f0f0f0;
+    }
+
+    .sidebar {
+        background: #2d2d2d;
+        border-right-color: #444;
+        color: #f0f0f0;
+    }
+
+    .sidebar a {
+        color: #ccc;
+    }
+
+    .sidebar a:hover {
+        background: #3d3d3d;
+    }
+
+    .main-chat {
+        background: #1a1a1a;
+    }
+
+    .chat-header, .chat-input-area {
+        background: #2d2d2d;
+        border-color: #444;
+    }
+
+    .message {
+        background: #3d3d3d;
+        color: #fff;
+        box-shadow: none;
+    }
+
+    .my-msg {
+        background: #056162; /* ダークな緑 */
+    }
+
+    input[type="text"] {
+        background: #3d3d3d;
+        color: #fff;
+        border-color: #555;
+    }
+
+    table {
+        background: #2d2d2d;
+        color: #f0f0f0;
+    }
+}
