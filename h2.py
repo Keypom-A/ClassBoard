@@ -71,7 +71,7 @@ from flask import jsonify
 
 @app.route("/api/weather")
 def get_weather_api():
-    """OMAPIをサーバー側で中継する（エラー対策強化版）"""
+    #"""OMAPIをサーバー側で中継する（エラー対策強化版）"""
     try:
         # 郡山市の座標
         lat, lon = 37.4005, 140.3600
@@ -89,7 +89,6 @@ def get_weather_api():
         # Renderのログにエラー内容を書き出す
         print(f"--- Weather API Detail Error ---: {str(e)}")
         return jsonify({"error": "Failed to fetch weather", "detail": str(e)}), 500
-        )
 @app.route("/")
 def index():
     if "username" not in session:
