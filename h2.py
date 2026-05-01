@@ -64,7 +64,32 @@ init_db()
 def get_now_jst():
     return datetime.utcnow() + timedelta(hours=9)
 
-@app.route('/')
+@app.route("/api/weather")
+def get_weather_api():
+    """OMAPIのデータをサーバー側で中継する"""
+    try:
+        # 郡山市の緯度・経度を指定
+        lat = 37.4005
+        lon = 140.3600
+        url = f"https://open-meteo.com{lat}&longitude={lon}&current_weather=true&timezone=Asia%2FTokyo"
+
+        # 相手サーバーに拒否されないよう設定
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "Mozilla/5.0"}
+        )
+
+        with urllib.request.urlopen(req, timeout=3) as response:
+            return (
+                response.read().decode(),
+                200,
+                {"Content-Type": "application/json"},
+            )
+    except Exception as e:
+        return (
+            json.dumps({"error": str(e)}),
+            500,
+            {"Content-Type": "application/json"},
+        )
 @app.route("/")
 def index():
     if "username" not in session:
