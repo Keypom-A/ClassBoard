@@ -65,19 +65,22 @@ def get_now_jst():
     return datetime.utcnow() + timedelta(hours=9)
 
 @app.route('/')
-weather_data = {"temp": "--", "text": "取得失敗"}
-try:
+def index():
+    if"username"not in session:
+       return redirect(url_for("login"))
+    weather_data = {"temp": "--", "text": "取得失敗"}
+    try:
     # 緯度・経度（例：東京）
-    lat, lon = 35.6895, 139.6917
-    url = f"https://open-meteo.com{lat}&longitude={lon}&current_weather=true&timezone=Asia%2FTokyo"
+        lat, lon = 35.6895, 139.6917
+        url = f"https://open-meteo.com{lat}&longitude={lon}&current_weather=true&timezone=Asia%2FTokyo"
 
-    with urllib.request.urlopen(url, timeout=3) as response:
-        data = json.loads(response.read().decode())
-        current = data.get("current_weather", {})
+        with urllib.request.urlopen(url, timeout=3) as response:
+            data = json.loads(response.read().decode())
+            current = data.get("current_weather", {})
         
         # 天気コードの変換
-        code = current.get("weathercode", 0)
-        weather_map = {
+            code = current.get("weathercode", 0)
+            weather_map = {
             0: "☀️ 快晴", 1: "🌤 晴れ", 2: "⛅ 曇り", 3: "☁️ 曇り",
             45: "🌫 霧", 48: "🌫 霧", 51: "🌦 霧雨", 53: "🌦 霧雨",
             55: "🌦 霧雨", 61: "🌧 小雨", 63: "🌧 雨", 65: "🌧 大雨",
