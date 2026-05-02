@@ -163,6 +163,35 @@
             if(area) area.style.display = check.checked ? 'block' : 'none';
         }
     </script>
+    <script>
+    async function updateWeather() {
+        try {
+            // 先ほど作成した /api/weather からデータを取得
+            const res = await fetch("/api/weather");
+            const data = await res.json();
+            
+            if (data.error) throw new Error(data.error);
+
+            // 天気コードに応じたアイコン変換
+            const map = {
+                0: {i: "☀️", t: "快晴"}, 1: {i: "🌤", t: "晴れ"}, 
+                2: {i: "⛅", t: "曇り"}, 3: {i: "☁️", t: "曇り"},
+                61: {i: "🌧", t: "雨"}, 95: {i: "🌩", t: "雷雨"}
+            };
+            const info = map[data.code] || {i: "☁️", t: "不明"};
+
+            // ボタンの表示を更新
+            document.getElementById('w-icon').textContent = info.i;
+            document.getElementById('w-text').textContent = info.t;
+            document.getElementById('w-temp').textContent = data.temp + "℃";
+            
+        } catch (e) {
+            document.getElementById('w-text').textContent = "天気情報なし";
+            console.error(e);
+        }
+    }
+    updateWeather();
+</script>
 
         <!-- ☀️ 天気予報の枠（必ず script の前に置く） -->
     <div id="weather-box" style="position: fixed; top: 15px; left: 15px; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; color: #333; display: none;">
