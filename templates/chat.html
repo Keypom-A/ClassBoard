@@ -151,9 +151,9 @@
        {% endfor %}
         </div>
 
-    <div class="sidebar-section">
-        <h3>ユーザー</h3>
-        {% for u in users %}
+           <div class="sidebar-section">
+           <h3>ユーザー</h3>
+           {% for u in users %}
             <a href="/chat?user={{ u.username }}" class="sidebar-item">
                 {{ u.username }}
                 {% if last_ids.get(u.username) %}
@@ -161,7 +161,7 @@
                 {% endif %}
             </a>
         {% endfor %}
-    </div>
+          </div>
 
     <div class="sidebar-section">
         <h3>グループ</h3>
