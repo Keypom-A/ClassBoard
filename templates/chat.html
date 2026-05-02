@@ -57,42 +57,49 @@
 /* --- スマホ最優先で上書きする --- */
 @media (max-width: 768px) {
 
+    .menu-btn {
+        display: block !important;
+        font-size: 24px;
+        padding: 12px;
+        cursor: pointer;
+        z-index: 1100;
+        background: #fff;
+        border-bottom: 1px solid #ddd;
+    }
+
     .sidebar {
-        position: absolute !important;
+        position: fixed !important;
         left: 0;
         top: 0;
         bottom: 0;
         width: 240px;
         background: #fff;
         transform: translateX(-100%) !important;
-        box-shadow: 5px 0 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
         z-index: 1000;
+        box-shadow: 5px 0 15px rgba(0,0,0,0.1);
     }
 
     .sidebar.open {
         transform: translateX(0) !important;
     }
 
-    .menu-btn {
-        display: block !important;
-    }
-
     .overlay {
         display: none;
-        position: absolute;
+        position: fixed;
         inset: 0;
         background: rgba(0,0,0,0.3);
-        z-index: 999;
+        z-index: 900;
     }
 
     .overlay.open {
         display: block;
     }
 }
-        }
     </style>
 </head>
 <body>
+    <div class="menu-btn" onclick="toggleMenu()">☰</div>
     <div class="layout">
         <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
         
@@ -245,6 +252,13 @@ async function updateUnreadBadges() {
 setInterval(updateUnreadBadges, 3000);
 updateUnreadBadges();
 </script>
+<script>
+function toggleMenu() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('open');
+}
+</script>
+
 
     </script>
 </body>
