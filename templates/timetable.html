@@ -44,8 +44,8 @@
             {% for p in periods %}
             <tr>
                 <td class="period-num">{{ p }}</td>
-                {% for d_idx in range(5) %}
-                    {% set d_date = week_dates[d_idx] %}
+                {% for i in range(5) %}
+                    {% set d_date = week_dates[i] %}
                 
                     {% set d_idx = week_labels[i].idx %}
                 
