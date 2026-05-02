@@ -59,6 +59,7 @@
                      <span id="w-temp" style="font-weight: bold;"></span>
                  </button>
             </div>
+            <div id="forecast=box"style="position: fixed; top: 70px; left: 15px; diaplay: flex;gap: 10px;z-index: 1000;>
             <div>
                 <a href="/timetable" class="btn" style="background:#673ab7; color:white;">📅 時間割</a>
                 {% if role != 'teacher' %}<a href="{{ url_for('chat') }}" class="btn btn-chat">💬 チャット</a>{% endif %}
@@ -234,7 +235,7 @@ function renderForecast(days) {
 </script>
 
         <!-- ☀️ 天気予報の枠（必ず script の前に置く） -->
-    <div id="forecast=box"style="position: fixed; top: 70px; left: 15px; diaplay: flex;gap: 10px;z-index: 1000;>
+   
     </div >
 
     <div style="position: fixed; top: 15px; right: 15px; z-index: 1000;">
