@@ -93,7 +93,7 @@ def get_weather_api():
         labels = ["今日", "明日", "明後日"]
 
         for i in range(3):
-            index = i * 24  # 0時 → 24時 → 48時
+            # 0時 → 24時 → 48時
             forecast.append({
                 "label": labels[i],
                 "max": round(data["daily"]["temperature_2m_max"][i]),
