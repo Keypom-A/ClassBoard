@@ -74,7 +74,7 @@ from flask import jsonify
 def get_weather_api():
     try:
         # 郡山市のピンポイント座標（Open-Meteo API）
-        url = "https://api.open-meteo.com/v1/forecast?latitude=37.4&longitude=140.38&current=temperature_2m,weather_code&timezone=Asia/Tokyo"
+        url = "https://api.open-meteo.com/v1/forecast?latitude=37.4&longitude=140.38&current=temperature_2m,wind_speed_10m,weathercode&hourly=temperature_2m,wind_speed_10m,weathercode&forecast_days=3&timezone=Asia/Tokyo"
         
         # サーバー側でデータを取得
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
