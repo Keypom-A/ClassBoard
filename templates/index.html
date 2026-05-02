@@ -163,44 +163,80 @@
             if(area) area.style.display = check.checked ? 'block' : 'none';
         }
     </script>
-    <script>
-    async function updateWeather() {
-        try {
-            // 先ほど作成した /api/weather からデータを取得
-            const res = await fetch("/api/weather");
-            const data = await res.json();
-            
-            if (data.error) throw new Error(data.error);
+<script>
+async function updateWeather() {
+    try {
+        const res = await fetch("/api/weather");
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
 
-            // 天気コードに応じたアイコン変換
-            const map = {
-                0: {i: "☀️", t: "快晴"}, 1: {i: "🌤", t: "晴れ"}, 
-                2: {i: "⛅", t: "曇り"}, 3: {i: "☁️", t: "曇り"},
-                61: {i: "🌧", t: "雨"}, 95: {i: "🌩", t: "雷雨"}
-            };
-            const info = map[data.code] || {i: "☁️", t: "不明"};
+        // 天気コード → アイコン
+        const map = {
+            0: {i: "☀️", t: "快晴"}, 
+            1: {i: "🌤", t: "晴れ"}, 
+            2: {i: "⛅", t: "曇り"}, 
+            3: {i: "☁️", t: "曇り"},
+            61: {i: "🌧", t: "雨"}, 
+            95: {i: "🌩", t: "雷雨"}
+        };
 
-            // ボタンの表示を更新
-            document.getElementById('w-icon').textContent = info.i;
-            document.getElementById('w-text').textContent = info.t;
-            document.getElementById('w-temp').textContent = data.temp + "℃";
-            
-        } catch (e) {
-            document.getElementById('w-text').textContent = "天気情報なし";
-            console.error(e);
-        }
+        // 現在の天気（天気ボタン）
+        const now = map[data.current.code] || {i: "☁️", t: "不明"};
+        document.getElementById('w-icon').textContent = now.i;
+        document.getElementById('w-text').textContent = now.t;
+        document.getElementById('w-temp').textContent = data.current.temp + "℃";
+
+        // 3日分のカードを描画
+        renderForecast(data.forecast);
+
+    } catch (e) {
+        console.error(e);
+        document.getElementById('w-text').textContent = "天気情報なし";
     }
-    updateWeather();
+}
+updateWeather();
+
+function renderForecast(days) {
+    const box = document.getElementById("forecast-box");
+    box.innerHTML = "";
+
+    const map = {
+        0: {i: "☀️", t: "快晴"}, 
+        1: {i: "🌤", t: "晴れ"}, 
+        2: {i: "⛅", t: "曇り"}, 
+        3: {i: "☁️", t: "曇り"},
+        61: {i: "🌧", t: "雨"}, 
+        95: {i: "🌩", t: "雷雨"}
+    };
+
+    days.forEach(d => {
+        const info = map[d.code] || {i: "☁️", t: "不明"};
+
+        const card = document.createElement("div");
+        card.style = `
+            background: rgba(255,255,255,0.85);
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 80px;
+        `;
+
+        card.innerHTML = `
+            <div style="font-size: 22px;">${info.i}</div>
+            <div style="font-size: 14px;">${d.label}</div>
+            <div style="font-size: 16px; font-weight: bold;">${d.temp}℃</div>
+        `;
+
+        box.appendChild(card);
+    });
+}
 </script>
 
         <!-- ☀️ 天気予報の枠（必ず script の前に置く） -->
-    <div id="weather-box" style="position: fixed; top: 15px; left: 15px; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; color: #333; display: none;">
-        <span id="weather-text" style="font-weight: bold;">取得中...</span>
-        <span id="weather-temp" style="margin-left: 5px;">--℃</span>
     <div id="forecast=box"style="position: fixed; top: 70px; left: 15px; diaplay: flex;gap: 10px;z-index: 1000;>
     </div >
 
-    <!-- 🌙 ダークモードボタン -->
     <div style="position: fixed; top: 15px; right: 15px; z-index: 1000;">
         <button id="dark-mode-toggle" class="dark-mode-btn" title="ダークモード切替">
             <span id="toggle-icon">🌙</span>
