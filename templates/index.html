@@ -215,7 +215,9 @@ function renderForecast(days) {
         card.innerHTML = `
             <div style="font-size: 22px;">${info.i}</div>
             <div style="font-size: 14px;">${d.label}</div>
-            <div style="font-size: 16px; font-weight: bold;">${d.temp}℃</div>
+            <div style="font-size: 16px; font-weight: bold;">
+                ${d.max}℃ / ${d.min}℃
+            </div>
         `;
 
         box.appendChild(card);
