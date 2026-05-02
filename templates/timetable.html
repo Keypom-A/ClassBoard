@@ -46,6 +46,9 @@
                 <td class="period-num">{{ p }}</td>
                 {% for d_idx in range(5) %}
                     {% set d_date = week_dates[d_idx] %}
+                
+                    {% set d_idx = week_labels[i].idx %}
+                
                     {# 1. まず「今日だけの変更分(日付)」を探し、なければ「テンプレ(曜日)」を使う #}
                     {% set c_cell = changed_data.get((d_date, p)) %}
                     {% set t_cell = table.get((d_idx, p)) %}
