@@ -243,7 +243,7 @@ def chat():
                             SET is_read = TRUE
                             WHERE receiver = %s AND username = %s
                         """, (me, partner))
-                         conn.commit()
+                        conn.commit()
             # --- POST処理（送信時） ---
             if request.method == 'POST':
                 msg_content = request.form.get('message', '')
