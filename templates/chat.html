@@ -147,6 +147,32 @@
        </a>
        {% endfor %}
         </div>
+<div id="sidebar" class="sidebar">
+    <div class="sidebar-header">チャット一覧</div>
+
+    <div class="sidebar-section">
+        <h3>ユーザー</h3>
+        {% for u in users %}
+            <a href="/chat?user={{ u.username }}" class="sidebar-item">
+                {{ u.username }}
+                {% if last_ids.get(u.username) %}
+                    <span class="badge">●</span>
+                {% endif %}
+            </a>
+        {% endfor %}
+    </div>
+
+    <div class="sidebar-section">
+        <h3>グループ</h3>
+        {% for g in my_groups %}
+            <a href="/chat?group={{ g }}" class="sidebar-item">
+                {{ g }}
+            </a>
+        {% endfor %}
+    </div>
+</div>
+
+<div id="overlay" class="overlay" onclick="toggleMenu()"></div>
 
         <div class="main-chat">
             <div class="chat-header">
@@ -198,80 +224,57 @@
         </div>
     </div>
 
-    <script>
-        if (localStorage.getItem('theme') === 'dark') {
-        document.documentElement.classList.add('dark-theme');
+<script>
+if (localStorage.getItem('theme') === 'dark') {
+    document.documentElement.classList.add('dark-theme');
+}
+
+function toggleMenu() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('open');
+}
+
+window.onload = function() {
+    const chatDisplay = document.getElementById('chatDisplay');
+    chatDisplay.scrollTop = chatDisplay.scrollHeight;
+};
+
+function createGroup() {
+    const name = prompt("新しいグループの合言葉を決めてください");
+    if (name) location.href = "/chat?group=" + encodeURIComponent(name);
+}
+
+function joinGroup() {
+    const name = prompt("参加するグループの合言葉を入力してください");
+    if (name) location.href = "/chat?group=" + encodeURIComponent(name);
+}
+
+let msgInput = document.querySelector('input[name="message"]');
+setInterval(function(){ 
+    let fileInput = document.querySelector('input[name="file"]');
+    if (msgInput.value === "" && (!fileInput || fileInput.files.length === 0) && document.activeElement !== msgInput) {
+        location.reload(); 
     }
-        function toggleMenu() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('overlay').classList.toggle('open');
-        }
+}, 5000);
 
-        window.onload = function() {
-            
-            // 下までスクロール
-            const chatDisplay = document.getElementById('chatDisplay');
-            chatDisplay.scrollTop = chatDisplay.scrollHeight;
-        };
-
-        function createGroup() {
-            const name = prompt("新しいグループの合言葉を決めてください");
-            if (name) location.href = "/chat?group=" + encodeURIComponent(name);
-        }
-        function joinGroup() {
-            const name = prompt("参加するグループの合言葉を入力してください");
-            if (name) location.href = "/chat?group=" + encodeURIComponent(name);
-        }
-        
-        let msgInput = document.querySelector('input[name="message"]');
-        setInterval(function(){ 
-            let fileInput = document.querySelector('input[name="file"]');
-            if (msgInput.value === "" && (!fileInput || fileInput.files.length === 0) && document.activeElement !== msgInput) {
-                location.reload(); 
-            }
-        }, 5000);
-        <script>
 async function updateUnreadBadges() {
     const res = await fetch("/api/unread_count");
     const data = await res.json();
 
-    // DM一覧のバッジ更新
     document.querySelectorAll(".chat-link").forEach(link => {
         const rx = link.dataset.rx;
         const badge = link.querySelector(".badge-notify");
-
         if (!badge) return;
 
         const count = data.unread[rx] || 0;
-
-        if (count > 0) {
-            badge.style.display = "inline-flex";
-            badge.textContent = count;
-        } else {
-            badge.style.display = "none";
-        }
+        badge.style.display = count > 0 ? "inline-flex" : "none";
+        if (count > 0) badge.textContent = count;
     });
 }
 
-// 3秒ごとに更新
 setInterval(updateUnreadBadges, 3000);
 updateUnreadBadges();
 </script>
-<script>
-function toggleMenu() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('overlay').classList.toggle('open');
-}
- <script>
-function toggleMenu() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('overlay').classList.toggle('open');
-}
-</script>
 
-</script>
-
-
-    </script>
 </body>
 </html>
