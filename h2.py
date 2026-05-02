@@ -231,12 +231,21 @@ def chat():
 @app.route('/timetable', methods=['GET', 'POST'])
 def timetable():
     if 'username' not in session: return redirect(url_for('login'))
-    now = get_now_jst()
-    monday = now - timedelta(days=now.weekday())
-    week_dates = [(monday + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(5)]
     
-    # HTML側の table.get((d_idx, p)) に合わせるためのマップ
-    day_to_idx = {"月": 0, "火": 1, "水": 2, "木": 3, "金": 4}
+    # --- 💡 修正：今日から「土日を除いた5日間」のリストを作成 ---
+    week_dates = []
+    week_labels = [] # 曜日名とDB用インデックスを保持
+    jp_days = ["月", "火", "水", "木", "金", "土", "日"]
+    
+    d = get_now_jst().date()
+    while len(week_dates) < 5:
+        if d.weekday() < 5:  # 0(月)〜4(金)のみ採用
+            week_dates.append(d.strftime('%Y-%m-%d'))
+            week_labels.append({
+                "name": jp_days[d.weekday()], 
+                "idx": d.weekday()
+            })
+        d += timedelta(days=1)
 
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
@@ -252,20 +261,15 @@ def timetable():
                 conn.commit()
                 return redirect(url_for('timetable'))
 
-                       # 1. テンプレ（黒）
+            # 1. テンプレ（黒）
             cur.execute("SELECT * FROM timetable WHERE day_of_week IS NOT NULL")
             table = {}
             for r in cur.fetchall():
                 try:
-                    # Neonに「2」と入っているなら、そのまま数値(int)に変換してキーにする
                     idx = int(r['day_of_week'])
                     table[(idx, int(r['period']))] = {'subject': r['subject']}
-                except (ValueError, TypeError):
-                    # もし「月」などの漢字が入っていた場合のバックアップ
-                    day_to_idx = {"月": 0, "火": 1, "水": 2, "木": 3, "金": 4}
-                    idx = day_to_idx.get(r['day_of_week'])
-                    if idx is not None:
-                        table[(idx, int(r['period']))] = {'subject': r['subject']}
+                except:
+                    continue
 
             # 2. 変更分（赤）
             cur.execute("SELECT * FROM timetable WHERE date::text = ANY(%s)", (week_dates,))
@@ -274,12 +278,13 @@ def timetable():
                 d_str = r['date'].strftime('%Y-%m-%d') if hasattr(r['date'], 'strftime') else str(r['date'])
                 changed_data[(d_str, int(r['period']))] = {'subject': r['subject']}
 
-    # ★ HTMLが探している変数名（table と changed_data）で渡す
+    # ★ HTMLに渡す。days_namesも動的に作成。
     return render_template('timetable.html', 
                            table=table, 
                            changed_data=changed_data, 
                            week_dates=week_dates, 
-                           days_names=["月", "火", "水", "木", "金"], 
+                           week_labels=week_labels, # 💡 追加
+                           days_names=[l['name'] for l in week_labels], 
                            periods=range(1, 7), 
                            role=session.get('role'))
 
