@@ -109,6 +109,9 @@
         <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
         
         <div class="sidebar" id="sidebar">
+            <a href="/" class="chat-link">
+                <span>🏠 ホームへ戻る</span>
+            </a>
             <h3>Menu</h3>
             <a href="/chat" class="chat-link {% if not partner and not group %}active{% endif %}" data-rx="all" data-lastid="{{ last_ids.get('all', 0) }}">
                 <span>📢 全体チャット</span>
