@@ -83,7 +83,7 @@ def get_weather_api():
 
         # 現在の天気
         current = {
-            "temp": data["current"]["temperature_2m"],
+            "temp": round(data["current"]["temperature_2m"]),
             "code": data["current"]["weathercode"]
         }
 
@@ -96,8 +96,8 @@ def get_weather_api():
             index = i * 24  # 0時 → 24時 → 48時
             forecast.append({
                 "label": labels[i],
-                "max": data["daily"]["temperature_2m_max"][i],
-                "min": data["daily"]["temperature_2m_min"][i],
+                "max": round(data["daily"]["temperature_2m_max"][i]),
+                "min": round(data["daily"]["temperature_2m_min"][i]),
                 "code": data["daily"]["weathercode"][i]
             })
 
