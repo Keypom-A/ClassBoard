@@ -72,24 +72,23 @@ from flask import jsonify
 
 @app.route("/api/weather")
 def get_weather_api():
-    #"""OMAPIをサーバー側で中継する（エラー対策強化版）"""
     try:
-        # 郡山市の座標
-        lat, lon = 37.4005, 140.3600
-        url = f"https://open-meteo.com"
-
-        # ヘッダーを付けて確実にアクセス
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        # 郡山市のピンポイント座標（Open-Meteo API）
+        url = "https://open-meteo.com"
         
-        # タイムアウトを長めに設定
-        with urllib.request.urlopen(req, timeout=10) as response:
+        # サーバー側でデータを取得
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode("utf-8"))
-            return jsonify(data)  # Flaskのjsonifyを使って確実に返す
-            
+            # 必要な気温とコードだけをシンプルに返す
+            return jsonify({
+                "temp": data["current"]["temperature_2m"],
+                "code": data["current"]["weather_code"]
+            })
     except Exception as e:
-        # Renderのログにエラー内容を書き出す
-        print(f"--- Weather API Detail Error ---: {str(e)}")
-        return jsonify({"error": "Failed to fetch weather", "detail": str(e)}), 500
+        print(f"Weather Error: {e}")
+        return jsonify({"error": "取得失敗"}), 500
+
 @app.route("/")
 def index():
     if "username" not in session:
@@ -133,7 +132,6 @@ def index():
         username=session["username"],
         role=session["role"],
         now=now_str,
-        weather={"temp": "--", "text": "--"},
     )
 @app.route('/add', methods=['POST'])
 def add_task():
