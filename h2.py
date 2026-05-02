@@ -96,8 +96,9 @@ def get_weather_api():
             index = i * 24  # 0時 → 24時 → 48時
             forecast.append({
                 "label": labels[i],
-                "temp": data["hourly"]["temperature_2m"][index],
-                "code": data["hourly"]["weathercode"][index]
+                "max": data["daily"]["temperature_2m_max"][i],
+                "min": data["daily"]["temperature_2m_min"][i],
+                "code": data["daily"]["weathercode"][i]
             })
 
         return jsonify({
