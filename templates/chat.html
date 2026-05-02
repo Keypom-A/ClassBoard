@@ -167,21 +167,6 @@
         }
 
         window.onload = function() {
-            let readData = JSON.parse(localStorage.getItem('read_ids') || "{}");
-            const currentRx = "{% if group %}grp_{{ group }}{% elif partner %}{{ partner }}{% else %}all{% endif %}";
-            
-            document.querySelectorAll('.chat-link').forEach(link => {
-                const rx = link.dataset.rx;
-                const lastId = parseInt(link.dataset.lastid);
-                const badge = link.querySelector('.badge-notify');
-
-                if (rx === currentRx) {
-                    readData[rx] = lastId;
-                } else if (lastId > (readData[rx] || 0)) {
-                    badge.style.display = 'inline-flex';
-                }
-            });
-            localStorage.setItem('read_ids', JSON.stringify(readData));
             
             // 下までスクロール
             const chatDisplay = document.getElementById('chatDisplay');
@@ -204,6 +189,34 @@
                 location.reload(); 
             }
         }, 5000);
+        <script>
+async function updateUnreadBadges() {
+    const res = await fetch("/api/unread_count");
+    const data = await res.json();
+
+    // DM一覧のバッジ更新
+    document.querySelectorAll(".chat-link").forEach(link => {
+        const rx = link.dataset.rx;
+        const badge = link.querySelector(".badge-notify");
+
+        if (!badge) return;
+
+        const count = data.unread[rx] || 0;
+
+        if (count > 0) {
+            badge.style.display = "inline-flex";
+            badge.textContent = count;
+        } else {
+            badge.style.display = "none";
+        }
+    });
+}
+
+// 3秒ごとに更新
+setInterval(updateUnreadBadges, 3000);
+updateUnreadBadges();
+</script>
+
     </script>
 </body>
 </html>
