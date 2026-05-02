@@ -211,7 +211,16 @@ def chat():
             my_groups = [r['receiver'].replace('grp_', '') for r in cur.fetchall()]
             if group and group not in my_groups:
                 my_groups.append(group)
-
+              # --- 既読処理 ---
+            if partner:  # DM のときだけ既読にする
+                with get_db() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            UPDATE chat_messages
+                            SET is_read = TRUE
+                            WHERE receiver = %s AND username = %s
+                        """, (me, partner))
+                         conn.commit()
             # --- POST処理（送信時） ---
             if request.method == 'POST':
                 msg_content = request.form.get('message', '')
