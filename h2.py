@@ -207,8 +207,10 @@ def add_task():
 
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
-    if 'username' not in session: return redirect(url_for('login'))
-    if session.get('role') == 'teacher': return "先生はチャットを利用できません。"
+    if 'username' not in session: 
+        return redirect(url_for('login'))
+    if session.get('role') == 'teacher': 
+        return "先生はチャットを利用できません。"
     
     me = session['username']
     partner = request.args.get('user')
@@ -216,6 +218,7 @@ def chat():
     
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+
             # 1. ユーザーリスト取得
             cur.execute("SELECT username, role FROM users")
             users = cur.fetchall()
@@ -234,41 +237,60 @@ def chat():
             my_groups = [r['receiver'].replace('grp_', '') for r in cur.fetchall()]
             if group and group not in my_groups:
                 my_groups.append(group)
-              # --- 既読処理 ---
-            if partner:  # DM のときだけ既読にする
-                with get_db() as conn:
-                    with conn.cursor() as cur:
-                        cur.execute("""
-                            UPDATE chat_messages
-                            SET is_read = TRUE
-                            WHERE receiver = %s AND username = %s
-                        """, (me, partner))
-                        conn.commit()
+
+            # --- 既読処理（ここが修正ポイント） ---
+            if partner:
+                cur.execute("""
+                    UPDATE chat_messages
+                    SET is_read = TRUE
+                    WHERE receiver = %s AND username = %s
+                """, (me, partner))
+                conn.commit()
+
             # --- POST処理（送信時） ---
             if request.method == 'POST':
                 msg_content = request.form.get('message', '')
                 file = request.files.get('file')
                 file_url = None
+
                 if file and file.filename != '':
                     try:
                         res = cloudinary.uploader.upload(file, resource_type="auto")
                         file_url = res.get('secure_url')
                     except Exception as e:
                         print(f"Cloudinary Error: {e}")
+
                 target = f"grp_{group}" if group else (partner if partner else "all")
                 now_str = get_now_jst().strftime('%m/%d %H:%M')
+
                 if msg_content or file_url:
-                    cur.execute("INSERT INTO chat_messages (username, message, receiver, file_path, created_at) VALUES (%s, %s, %s, %s, %s)", (me, msg_content, target, file_url, now_str))
+                    cur.execute("""
+                        INSERT INTO chat_messages (username, message, receiver, file_path, created_at)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (me, msg_content, target, file_url, now_str))
                     conn.commit()
+
                 return redirect(url_for('chat', user=partner, group=group))
 
             # --- GET処理（表示時） ---
             target = f"grp_{group}" if group else (partner if partner else "all")
+
             if target == "all" or target.startswith("grp_"):
-                cur.execute('SELECT * FROM chat_messages WHERE receiver = %s ORDER BY id DESC LIMIT 50', (target,))
+                cur.execute("""
+                    SELECT * FROM chat_messages
+                    WHERE receiver = %s
+                    ORDER BY id DESC LIMIT 50
+                """, (target,))
             else:
-                cur.execute('SELECT * FROM chat_messages WHERE (username = %s AND receiver = %s) OR (username = %s AND receiver = %s) ORDER BY id DESC LIMIT 50', (me, target, target, me))
+                cur.execute("""
+                    SELECT * FROM chat_messages
+                    WHERE (username = %s AND receiver = %s)
+                       OR (username = %s AND receiver = %s)
+                    ORDER BY id DESC LIMIT 50
+                """, (me, target, target, me))
+
             raw_messages = cur.fetchall()
+
             messages = []
             for m in reversed(raw_messages):
                 messages.append({
@@ -278,8 +300,16 @@ def chat():
                     'created_at': m.get('created_at', '')
                 })
 
-    # この return のインデントを def 直下のレベル（スペース4つ）に修正しました
-    return render_template('chat.html', messages=messages, partner=partner, group=group, my_groups=my_groups, users=users, last_ids=last_ids, username=me)
+    return render_template(
+        'chat.html',
+        messages=messages,
+        partner=partner,
+        group=group,
+        my_groups=my_groups,
+        users=users,
+        last_ids=last_ids,
+        username=me
+    )
 
 @app.route('/timetable', methods=['GET', 'POST'])
 def timetable():
