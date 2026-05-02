@@ -45,10 +45,6 @@
     </style>
 </head>
 <body>
-
-
-</script>
-
     <div class="container">
         <div class="header-flex">
             <h1 style="margin:0; color:#2c3e50;">ClassBoard</h1>
@@ -59,7 +55,7 @@
                      <span id="w-temp" style="font-weight: bold;"></span>
                  </button>
             </div>
-            <div id="forecast=box"style="position: fixed; top: 70px; left: 15px; diaplay: flex;gap: 10px;z-index: 1000;>
+           <div id="forecast-box" style="margin-top:10px;display:flex;gap:10px;"></div>
             <div>
                 <a href="/timetable" class="btn" style="background:#673ab7; color:white;">📅 時間割</a>
                 {% if role != 'teacher' %}<a href="{{ url_for('chat') }}" class="btn btn-chat">💬 チャット</a>{% endif %}
@@ -114,8 +110,6 @@
                 {% endif %}
                 <button type="submit" class="btn btn-add">投稿する</button>
             </form>
-        </div>
-    
         </div>
         <!-- 📅 タスク一覧 -->
         <div class="table-container">
@@ -260,22 +254,6 @@ function renderForecast(days) {
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
             toggleIcon.textContent = isDark ? '☀️' : '🌙';
         });
-
-        // ページ読み込み完了時に実行
-        window.addEventListener('DOMContentLoaded', fetchWeather);
-        async function loadWeather() {
-        try {
-            const res = await fetch("/api/weather");
-            const data = await res.json();
-            if (data.error) return;
-
-            const map = {0:"☀️快晴",1:"🌤晴れ",2:"⛅曇り",3:"☁️曇り",61:"🌧雨",95:"🌩雷雨"};
-            document.getElementById('weather-text').textContent = map[data.code] || "晴れ/曇";
-            document.getElementById('weather-temp').textContent = data.temp + "℃";
-            document.getElementById('weather-box').style.display = "block";
-        } catch (e) { console.error(e); }
-    }
-    loadWeather();
     </script>
 </body>
 </html>
