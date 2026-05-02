@@ -232,24 +232,22 @@ def chat():
 def timetable():
     if 'username' not in session: return redirect(url_for('login'))
     
-    # --- 💡 修正：今日から「土日を除いた5日間」のリストを作成 ---
+    # 💡 修正ポイント：今日から「土日を除いた5日間」を作成
     week_dates = []
-    week_labels = [] # 曜日名とDB用インデックスを保持
+    week_labels = []
     jp_days = ["月", "火", "水", "木", "金", "土", "日"]
     
     d = get_now_jst().date()
     while len(week_dates) < 5:
-        if d.weekday() < 5:  # 0(月)〜4(金)のみ採用
+        if d.weekday() < 5:  # 月〜金ならリストに追加
             week_dates.append(d.strftime('%Y-%m-%d'))
-            week_labels.append({
-                "name": jp_days[d.weekday()], 
-                "idx": d.weekday()
-            })
+            # 曜日名と、DBの曜日ID(0=月, 1=火...)を保存
+            week_labels.append({"name": jp_days[d.weekday()], "idx": d.weekday()})
         d += timedelta(days=1)
 
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            # --- POST処理（送信時） ---
+            # --- POST処理（保存） ---
             if request.method == 'POST' and session.get('role') in ['admin', 'teacher']:
                 date, day, period, subject = request.form.get('date'), request.form.get('day'), request.form.get('period'), request.form.get('subject')
                 is_changed = True if request.form.get('is_changed') == 'true' else False
@@ -261,32 +259,29 @@ def timetable():
                 conn.commit()
                 return redirect(url_for('timetable'))
 
-            # 1. テンプレ（黒）
+            # 1. テンプレ（黒）の取得
             cur.execute("SELECT * FROM timetable WHERE day_of_week IS NOT NULL")
             table = {}
             for r in cur.fetchall():
-                try:
-                    idx = int(r['day_of_week'])
-                    table[(idx, int(r['period']))] = {'subject': r['subject']}
-                except:
-                    continue
+                table[(int(r['day_of_week']), int(r['period']))] = {'subject': r['subject']}
 
-            # 2. 変更分（赤）
+            # 2. 変更分（赤）の取得
             cur.execute("SELECT * FROM timetable WHERE date::text = ANY(%s)", (week_dates,))
             changed_data = {}
             for r in cur.fetchall():
                 d_str = r['date'].strftime('%Y-%m-%d') if hasattr(r['date'], 'strftime') else str(r['date'])
                 changed_data[(d_str, int(r['period']))] = {'subject': r['subject']}
 
-    # ★ HTMLに渡す。days_namesも動的に作成。
+    # 💡 重要：week_labels を HTML に渡す
     return render_template('timetable.html', 
                            table=table, 
                            changed_data=changed_data, 
                            week_dates=week_dates, 
-                           week_labels=week_labels, # 💡 追加
+                           week_labels=week_labels, 
                            days_names=[l['name'] for l in week_labels], 
                            periods=range(1, 7), 
                            role=session.get('role'))
+
 
 @app.route('/delete/<int:task_id>', methods=['POST'])
 def delete_task(task_id):
