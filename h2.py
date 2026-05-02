@@ -70,6 +70,29 @@ import json
 import urllib.request
 from flask import jsonify
 
+@app.route("/api/unread_count")
+def unread_count():
+    if "username" not in session:
+        return jsonify({"error": "not logged in"}), 403
+
+    me = session["username"]
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            # 相手ごとの未読数を返す
+            cur.execute("""
+                SELECT username, COUNT(*)
+                FROM chat_messages
+                WHERE receiver = %s AND is_read = FALSE
+                GROUP BY username
+            """, (me,))
+            rows = cur.fetchall()
+
+    # { "相手の名前": 未読数 } の形に変換
+    unread_map = {row[0]: row[1] for row in rows}
+
+    return jsonify({"unread": unread_map})
+
 @app.route("/api/weather")
 def get_weather_api():
     try:
