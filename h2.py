@@ -76,7 +76,7 @@ def get_weather_api():
     try:
         # 郡山市の座標
         lat, lon = 37.4005, 140.3600
-        url = f"https://open-meteo.com{lat}&longitude={lon}&current_weather=true&timezone=Asia%2FTokyo"
+        url = f"https://open-meteo.com/en/docs?latitude=37.4231&longitude=140.3434&timezone=Asia%2FTokyo&past_days=2&bounding_box=-90,-180,90,180&current=temperature_2m,weather_code#location_and_time
 
         # ヘッダーを付けて確実にアクセス
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
