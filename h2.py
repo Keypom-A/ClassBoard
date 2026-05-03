@@ -96,7 +96,7 @@ def unread_count():
                 ORDER BY created_at ASC
             """)
             messages = cr.fetchall()
-      return render_template("chat.html",messages=messges, username=me)
+        return render_template("chat.html", messages=messages, username=me)
 
     # ★ unread_map に全体チャットも追加
     unread_map = {"all": unread_all}
