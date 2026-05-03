@@ -79,7 +79,16 @@ def unread_count():
 
     with get_db() as conn:
         with conn.cursor() as cur:
-            # 相手ごとの未読数を返す
+
+            # ★ 全体チャット（receiver='all'）の未読数
+            cur.execute("""
+                SELECT COUNT(*)
+                FROM chat_messages
+                WHERE receiver = 'all' AND is_read = FALSE
+            """)
+            unread_all = cur.fetchone()[0]
+
+            # ★ DM の未読数（相手ごと）
             cur.execute("""
                 SELECT username, COUNT(*)
                 FROM chat_messages
@@ -88,8 +97,10 @@ def unread_count():
             """, (me,))
             rows = cur.fetchall()
 
-    # { "相手の名前": 未読数 } の形に変換
-    unread_map = {row[0]: row[1] for row in rows}
+    # ★ unread_map に全体チャットも追加
+    unread_map = {"all": unread_all}
+    for row in rows:
+        unread_map[row[0]] = row[1]
 
     return jsonify({"unread": unread_map})
 
