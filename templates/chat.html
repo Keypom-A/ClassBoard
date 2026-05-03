@@ -173,7 +173,9 @@
         }
 
         .input-row input[type="text"] {
-            flex: 1;
+            width: auto;
+            min-width: 80px;
+            max-width: 60%;
             padding: 8px 10px;
             border-radius: 6px;
             border: 1px solid #ccc;
@@ -211,6 +213,9 @@
                 max-height: calc(100vh - 200px);
     }
 }
+        @media (max-width: 480px)
+        {.input-row input[type="txt"]
+         {max-width:50%}}
     </style>
 </head>
 
