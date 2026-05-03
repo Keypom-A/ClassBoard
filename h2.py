@@ -82,20 +82,21 @@ def unread_count():
 
             # ★ 全体チャット（receiver='all'）の未読数
             cur.execute("""
-                SELECT COUNT(*)
-                FROM chat_messages
+                UPDATE chat_messages
+                SET is_read = TRUE
                 WHERE receiver = 'all' AND is_read = FALSE
             """)
-            unread_all = cur.fetchone()[0]
+            conn.commit()
 
             # ★ DM の未読数（相手ごと）
             cur.execute("""
                 SELECT username, COUNT(*)
                 FROM chat_messages
-                WHERE receiver = %s AND is_read = FALSE
-                GROUP BY username
-            """, (me,))
-            rows = cur.fetchall()
+                WHERE receiver = 'all'
+                ORDER BY created_at ASC
+            """)
+            messages = cr.fetchall()
+      return render_template("chat.html",messages=messges, username=me)
 
     # ★ unread_map に全体チャットも追加
     unread_map = {"all": unread_all}
