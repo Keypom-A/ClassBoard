@@ -31,18 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (name) location.href = "/chat?group=" + encodeURIComponent(name);
     };
 
-    // ===== 入力が空のまま放置されたらリロード =====
-    let msgInput = document.querySelector('input[name="message"]');
-    setInterval(function () {
-        let fileInput = document.querySelector('input[name="file"]');
-        if (msgInput &&
-            msgInput.value === "" &&
-            (!fileInput || fileInput.files.length === 0) &&
-            document.activeElement !== msgInput) {
-            location.reload();
-        }
-    }, 5000);
-
     // ===== 未読バッジ更新 =====
     async function updateUnreadBadges() {
         const res = await fetch("/api/unread_count");
