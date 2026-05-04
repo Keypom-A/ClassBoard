@@ -15,9 +15,22 @@ function createGroup() {
 // グループ参加
 // ================================
 function joinGroup() {
-    const name = prompt("参加したいグループ名を入力してください");
+    const name = prompt("グループ名を入力してください");
     if (!name) return;
-    window.location.href = `/chat?group=${encodeURIComponent(name)}`;
+
+    fetch("/api/join_group", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ group: name })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = `/chat?group=${name}`;
+        } else {
+            alert("参加に失敗しました");
+        }
+    });
 }
 
 // ================================
