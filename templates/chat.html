@@ -354,5 +354,16 @@
 
 <script src="/static/chat.js"></script>
 
+<script>
+    // ログイン中のユーザー名
+    window.username = "{{ username }}";
+
+    // DM の相手（DM 画面のときだけ値が入る）
+    window.currentPartner = "{{ partner if partner else '' }}";
+
+    // グループ名（グループチャットのときだけ値が入る）
+    window.currentGroup = "{{ group if group else '' }}";
+</script>
+
 </body>
 </html>
