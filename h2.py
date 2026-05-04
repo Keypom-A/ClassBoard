@@ -244,52 +244,80 @@ def add_task():
 
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
-    if 'username' not in session: 
+    # --- ログインチェック ---
+    if 'username' not in session:
         return redirect(url_for('login'))
-    if session.get('role') == 'teacher': 
+    if session.get('role') == 'teacher':
         return "先生はチャットを利用できません。"
-    
+
     me = session['username']
-    partner = request.args.get('user')
-    group = request.args.get('group')
-    
+
+    # --- URL パラメータ ---
+    partner = request.args.get('user')      # DM
+    group = request.args.get('group')       # グループ
+    room = request.args.get('room')         # 全体チャット（all）
+
+    # --- どのチャットを開くか決定 ---
+    if group:
+        target = f"grp_{group}"
+    elif partner:
+        target = partner
+    else:
+        target = "all"
+
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
 
-            # 1. ユーザーリスト取得
+            # ============================
+            # 1. ユーザー一覧
+            # ============================
             cur.execute("SELECT username, role FROM users")
             users = cur.fetchall()
 
-            # 2. 通知用バッジ
-            last_ids = {}
-            try:
-                cur.execute("SELECT receiver, MAX(id) as last_id FROM chat_messages GROUP BY receiver")
-                for r in cur.fetchall():
-                    last_ids[r['receiver']] = r['last_id']
-            except:
-                conn.rollback()
-
-            # 3. グループリスト取得
-            cur.execute("SELECT DISTINCT receiver FROM chat_messages WHERE receiver LIKE 'grp_%%'")
+            # ============================
+            # 2. グループ一覧（自分が関わったもの）
+            # ============================
+            cur.execute("""
+                SELECT DISTINCT receiver 
+                FROM chat_messages 
+                WHERE receiver LIKE 'grp_%%'
+            """)
             my_groups = [r['receiver'].replace('grp_', '') for r in cur.fetchall()]
+
+            # 新規グループに入った場合は追加
             if group and group not in my_groups:
                 my_groups.append(group)
 
-            # --- 既読処理（ここが修正ポイント） ---
+            # ============================
+            # 3. 既読処理（DM / GRP）
+            # ============================
             if partner:
+                # DM の既読処理
                 cur.execute("""
                     UPDATE chat_messages
                     SET is_read = TRUE
-                    WHERE receiver = %s AND username = %s
-                """, (me, partner))
+                    WHERE receiver = %s AND username != %s
+                """, (partner, me))
                 conn.commit()
 
-            # --- POST処理（送信時） ---
+            elif group:
+                # グループの既読処理
+                cur.execute("""
+                    UPDATE chat_messages
+                    SET is_read = TRUE
+                    WHERE receiver = %s AND username != %s
+                """, (f"grp_{group}", me))
+                conn.commit()
+
+            # ============================
+            # 4. POST（送信）
+            # ============================
             if request.method == 'POST':
                 msg_content = request.form.get('message', '')
                 file = request.files.get('file')
                 file_url = None
 
+                # --- ファイルアップロード ---
                 if file and file.filename != '':
                     try:
                         res = cloudinary.uploader.upload(file, resource_type="auto")
@@ -297,28 +325,37 @@ def chat():
                     except Exception as e:
                         print(f"Cloudinary Error: {e}")
 
-                target = f"grp_{group}" if group else (partner if partner else "all")
+                # --- 送信先 ---
+                if group:
+                    receiver = f"grp_{group}"
+                elif partner:
+                    receiver = partner
+                else:
+                    receiver = "all"
+
                 now_str = get_now_jst().strftime('%m/%d %H:%M')
 
                 if msg_content or file_url:
                     cur.execute("""
                         INSERT INTO chat_messages (username, message, receiver, file_path, created_at)
                         VALUES (%s, %s, %s, %s, %s)
-                    """, (me, msg_content, target, file_url, now_str))
+                    """, (me, msg_content, receiver, file_url, now_str))
                     conn.commit()
 
-                return redirect(url_for('chat', user=partner, group=group))
+                return redirect(url_for('chat', user=partner, group=group, room=room))
 
-            # --- GET処理（表示時） ---
-            target = f"grp_{group}" if group else (partner if partner else "all")
-
+            # ============================
+            # 5. GET（表示）
+            # ============================
             if target == "all" or target.startswith("grp_"):
+                # 全体 or グループ
                 cur.execute("""
                     SELECT * FROM chat_messages
                     WHERE receiver = %s
                     ORDER BY id DESC LIMIT 50
                 """, (target,))
             else:
+                # DM
                 cur.execute("""
                     SELECT * FROM chat_messages
                     WHERE (username = %s AND receiver = %s)
@@ -328,29 +365,31 @@ def chat():
 
             raw_messages = cur.fetchall()
 
+            # ============================
+            # 6. メッセージ整形
+            # ============================
             messages = []
             for m in reversed(raw_messages):
                 messages.append({
-                    'username': m.get('username') or m.get('sender', 'Unknown'),
-                    'message': m.get('message') or m.get('content', ''),
+                    'username': m.get('username'),
+                    'message': m.get('message'),
                     'file_path': m.get('file_path'),
-                    'created_at': m.get('created_at', '')
+                    'created_at': m.get('created_at'),
+                    'is_me': (m.get('username') == me)
                 })
 
+    # ============================
+    # 7. テンプレートへ返す
+    # ============================
     return render_template(
         'chat.html',
         messages=messages,
         partner=partner,
         group=group,
-        my_groups=my_groups,
         users=users,
-        last_ids=last_ids,
+        groups=my_groups,
         username=me,
-        groups=my_groups,          # ← グループ一覧
-        dm_users=[u['username'] for u in users if u['username'] != me],  # ← DM一覧
-        unread_group={g: 0 for g in my_groups},  # ← とりあえず0でOK（後で実装）
-        unread_dm={u['username']: 0 for u in users if u['username'] != me},
-        unread_all=0
+        dm_users=[u['username'] for u in users if u['username'] != me]
     )
 
 @app.route('/timetable', methods=['GET', 'POST'])
