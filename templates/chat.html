@@ -206,28 +206,39 @@
 
     <!-- サイドバー -->
     <div class="sidebar">
-        <h3>メニュー</h3>
-
+        <!-- ① 全体チャット -->
+        <h3>全体</h3>
         <a class="chat-link" href="/chat">
             全体チャット
+            {% if unread_all > 0 %}
+            <span class="badge-notify">{{ unread_all }}</span>
+            {% endif %}
         </a>
 
+        <!-- ② グループ操作（参加・作成） -->
+        <h3>グループ</h3>
+        <div class="group-ops">
+            <a class="btn-op" href="/create_group">作成</a>
+            <a class="btn-op" href="/join_group">参加</a>
+        </div>
+        
+        <!-- ③ グループ一覧 -->
+        {% for g in groups %}
+        <a class="chat-link" href="/chat?group={{ g }}">
+            {{ g }}
+            {% if unread_group[g] > 0 %}
+            <span class="badge-notify">{{ unread_group[g] }}</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+
+        <!-- ④ DM一覧 -->
         <h3>DM</h3>
         {% for user in dm_users %}
         <a class="chat-link" href="/chat?user={{ user }}">
             {{ user }}
             {% if unread_dm[user] > 0 %}
             <span class="badge-notify">{{ unread_dm[user] }}</span>
-            {% endif %}
-        </a>
-        {% endfor %}
-
-        <h3>グループ</h3>
-        {% for g in groups %}
-        <a class="chat-link" href="/chat?group={{ g }}">
-            {{ g }}
-            {% if unread_group[g] > 0 %}
-            <span class="badge-notify">{{ unread_group[g] }}</span>
             {% endif %}
         </a>
         {% endfor %}
