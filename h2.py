@@ -80,30 +80,55 @@ def unread_count():
     with get_db() as conn:
         with conn.cursor() as cur:
 
-            # ★ 全体チャット（receiver='all'）の未読数
+            # ★ 全体チャットの未読数（receiver='all'）
             cur.execute("""
-                UPDATE chat_messages
-                SET is_read = TRUE
+                SELECT COUNT(*)
+                FROM chat_messages
                 WHERE receiver = 'all' AND is_read = FALSE
             """)
-            conn.commit()
+            unread_all = cur.fetchone()[0]
 
             # ★ DM の未読数（相手ごと）
             cur.execute("""
-                SELECT username, COUNT(*)
+                SELECT sender, COUNT(*)
                 FROM chat_messages
-                WHERE receiver = 'all'
-                ORDER BY created_at ASC
-            """)
-            messages = cr.fetchall()
-        return render_template("chat.html", messages=messages, username=me)
+                WHERE receiver = %s AND is_read = FALSE
+                GROUP BY sender
+            """, (me,))
+            rows = cur.fetchall()
 
-    # ★ unread_map に全体チャットも追加
+    # { "相手の名前": 未読数 } の形に変換
     unread_map = {"all": unread_all}
-    for row in rows:
-        unread_map[row[0]] = row[1]
+    for sender, count in rows:
+        unread_map[sender] = count
 
     return jsonify({"unread": unread_map})
+
+@app.route("/api/mark_read", methods=["POST"])
+def mark_read():
+    if "username" not in session:
+        return jsonify({"error": "not logged in"}), 403
+
+    me = session["username"]
+    data = request.get_json()
+    partner = data.get("partner")  # DM の相手の username
+
+    if not partner:
+        return jsonify({"error": "missing partner"}), 400
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE chat_messages
+                SET is_read = TRUE
+                WHERE sender = %s
+                AND receiver = %s
+                AND is_read = FALSE
+            """, (partner, me))
+        conn.commit()
+
+    return jsonify({"status": "ok"})
+
 
 @app.route("/api/weather")
 def get_weather_api():
