@@ -133,6 +133,41 @@ def unread_count():
                 unread[g] = cur.fetchone()[0]
 
     return jsonify({"unread": unread})
+  
+@app.route("/api/delete_message", methods=["POST"])
+def api_delete_message():
+    if "username" not in session:
+        return jsonify({"success": False, "error": "not logged in"}), 403
+
+    me = session["username"]
+    data = request.get_json()
+    msg_id = data.get("id")
+
+    if not msg_id:
+        return jsonify({"success": False, "error": "no id"}), 400
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+
+            # 自分のメッセージか確認
+            cur.execute("""
+                SELECT username FROM chat_messages
+                WHERE id = %s
+            """, (msg_id,))
+            row = cur.fetchone()
+
+            if not row:
+                return jsonify({"success": False, "error": "not found"}), 404
+
+            if row[0] != me:
+                return jsonify({"success": False, "error": "forbidden"}), 403
+
+            # 削除
+            cur.execute("DELETE FROM chat_messages WHERE id = %s", (msg_id,))
+            conn.commit()
+
+    return jsonify({"success": True})
+
 
 @app.route("/api/mark_read", methods=["POST"])
 def mark_read():
