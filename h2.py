@@ -321,6 +321,11 @@ def chat():
         users=users,
         last_ids=last_ids,
         username=me
+        groups=my_groups,          # ← グループ一覧
+        dm_users=[u['username'] for u in users if u['username'] != me],  # ← DM一覧
+        unread_group={g: 0 for g in my_groups},  # ← とりあえず0でOK（後で実装）
+        unread_dm={u['username']: 0 for u in users if u['username'] != me},
+        unread_all=0
     )
 
 @app.route('/timetable', methods=['GET', 'POST'])
