@@ -205,44 +205,56 @@
 <div class="layout">
 
     <!-- サイドバー -->
-    <div class="sidebar">
-        <!-- ① 全体チャット -->
-        <h3>全体</h3>
-        <a class="chat-link" href="/chat">
-            全体チャット
-            {% if unread_all > 0 %}
-            <span class="badge-notify">{{ unread_all }}</span>
-            {% endif %}
-        </a>
+<div class="sidebar">
 
-        <!-- ② グループ操作（参加・作成） -->
-        <h3>グループ</h3>
-        <div class="group-ops">
-            <a class="btn-op" href="/create_group">作成</a>
-            <a class="btn-op" href="/join_group">参加</a>
-        </div>
-        
-        <!-- ③ グループ一覧 -->
-        {% for g in groups %}
-        <a class="chat-link" href="/chat?group={{ g }}">
-            {{ g }}
-            {% if unread_group[g] > 0 %}
-            <span class="badge-notify">{{ unread_group[g] }}</span>
-            {% endif %}
-        </a>
-        {% endfor %}
+    <!-- ① 全体チャット -->
+    <h3>🌐 全体チャット</h3>
+    <a class="chat-link" href="/chat">
+        💬 全体チャット
+        {% if unread_all > 0 %}
+        <span class="badge-notify">{{ unread_all }}</span>
+        {% endif %}
+    </a>
 
-        <!-- ④ DM一覧 -->
-        <h3>DM</h3>
-        {% for user in dm_users %}
-        <a class="chat-link" href="/chat?user={{ user }}">
-            {{ user }}
-            {% if unread_dm[user] > 0 %}
-            <span class="badge-notify">{{ unread_dm[user] }}</span>
-            {% endif %}
-        </a>
-        {% endfor %}
+    <!-- ② グループ操作 -->
+    <h3>👥 グループ</h3>
+    <div class="group-ops">
+        <a class="btn-op" href="/create_group">➕ 作成</a>
+        <a class="btn-op" href="/join_group">🔍 参加</a>
     </div>
+
+    <!-- ③ グループ一覧 -->
+    {% for g in groups %}
+    <a class="chat-link" href="/chat?group={{ g }}">
+        📁 {{ g }}
+        {% if unread_group[g] > 0 %}
+        <span class="badge-notify">{{ unread_group[g] }}</span>
+        {% endif %}
+    </a>
+    {% endfor %}
+
+    <!-- ④ DM一覧 -->
+    <h3>📨 DM</h3>
+    {% for u in users %}
+        {% if u.username != username %}
+        <a class="chat-link" href="/chat?user={{ u.username }}">
+
+            {% if u.role == 'admin' %}
+                🛡️
+            {% else %}
+                👤
+            {% endif %}
+
+            {{ u.username }}
+
+            {% if unread_dm[u.username] > 0 %}
+            <span class="badge-notify">{{ unread_dm[u.username] }}</span>
+            {% endif %}
+        </a>
+        {% endif %}
+    {% endfor %}
+
+</div>
 
 
     <!-- メインチャット -->
