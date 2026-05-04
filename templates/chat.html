@@ -154,3 +154,136 @@
             #hamburger {
                 display: block;
                 position: fixed;
+                top: 12px;
+                left: 12px;
+                font-size: 28px;
+                padding: 6px 10px;
+                background: white;
+                border-radius: 6px;
+                z-index: 2000;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                cursor: pointer;
+            }
+
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 240px;
+                height: 100%;
+                background: white;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 1500;
+                box-shadow: 4px 0 12px rgba(0,0,0,0.15);
+            }
+
+            #sidebar.open {
+                transform: translateX(0);
+            }
+
+            #overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.3);
+                z-index: 1400;
+            }
+
+            #overlay.open {
+                display: block;
+            }
+
+            .chat-container {
+                margin-top: 50px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ハンバーガー -->
+    <div id="hamburger" onclick="toggleMenu()">☰</div>
+    <div id="overlay" onclick="toggleMenu()"></div>
+
+    <div class="container">
+
+        <!-- ============================
+             サイドバー
+        ============================ -->
+        <div id="sidebar">
+            <div class="sidebar-header">ClassBoard</div>
+
+            <div class="chat-list">
+
+                <!-- 全体チャット -->
+                <a class="chat-link" href="/chat?room=all" data-rx="all">
+                    <span>全体チャット</span>
+                    <span class="badge-notify"></span>
+                </a>
+
+                <!-- DM -->
+                {% for u in dm_users %}
+                <a class="chat-link" href="/chat?user={{ u }}" data-rx="{{ u }}">
+                    <span>{{ u }}</span>
+                    <span class="badge-notify"></span>
+                </a>
+                {% endfor %}
+
+                <!-- グループ -->
+                {% for g in groups %}
+                <a class="chat-link" href="/chat?group={{ g }}" data-rx="{{ g }}">
+                    <span>グループ: {{ g }}</span>
+                    <span class="badge-notify"></span>
+                </a>
+                {% endfor %}
+
+            </div>
+        </div>
+
+        <!-- ============================
+             チャット画面
+        ============================ -->
+        <div class="chat-container">
+
+            <div id="chatDisplay">
+                {% for msg in messages %}
+                <div class="msg-row">
+                    <div class="message {% if msg.is_me %}my-msg{% else %}other-msg{% endif %}">
+                        <div class="user-name">{{ msg.username }}</div>
+
+                        {% if msg.file_path %}
+                            <div><img src="{{ msg.file_path }}" style="max-width: 200px; border-radius: 8px;"></div>
+                        {% endif %}
+
+                        <div>{{ msg.message }}</div>
+                        <div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">
+                            {{ msg.created_at }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <form id="sendForm" method="POST" enctype="multipart/form-data">
+                <input id="messageInput" name="message" type="text" placeholder="メッセージを入力…" autocomplete="off">
+                <input type="file" name="file" style="margin-left: 10px;">
+                <button id="sendBtn">送信</button>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- ============================
+         JS に必要な変数を埋め込む
+    ============================ -->
+    <script>
+        window.username = "{{ username }}";
+        window.currentPartner = "{{ partner if partner else '' }}";
+        window.currentGroup = "{{ group if group else '' }}";
+    </script>
+
+    <script src="/static/chat.js"></script>
+</body>
+</html>
