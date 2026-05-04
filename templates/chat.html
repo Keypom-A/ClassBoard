@@ -301,27 +301,22 @@
                 <div class="msg-row">
                     <div class="message {% if msg.username == username %}my-msg{% else %}other-msg{% endif %}">
                         <div class="user-name">{{ msg.username }}</div>
-                        <div>{{ msg.message }}</div>
-
-                        {% if msg.username == username %}
-                        <span style="font-weight:normal; color:#ccc; font-size:0.8em; margin-left:5px;">
-                                 <button class="delete-btn" data-id="{{ msg.id }}">削除</button>
-                        {% endif %}
-                    </div>
-                </div>
-
-                    <div style="word-break: break-all;">
-                        {{ msg.message }}
+                        <div>{{ msg.message }}
+                        </div>
                     </div>
 
-                    {% if msg.file_path %}
-                    <div style="margin-top:5px;">
-                        <a href="{{ msg.file_path }}" target="_blank"
-                            style="font-size:0.8em; color:#007bff; text-decoration:none;">
-                            📎 ファイルを表示
-                        </a>
-                    </div>
+                    {% if msg.username == username %}
+                        <button class="delete-btn" data-id="{{ msg.id }}">削除</button>
                     {% endif %}
+                 </div>
+
+                {% if msg.file_path %}
+                <div style="margin-top:5px;">
+                    <a href="{{ msg.file_path }}" target="_blank" style="font-size:0.8em; color:#007bff; text-decoration:none;">
+                        📎 ファイルを表示
+                    </a>
+                </div>
+                {% endif %}
                 </div>
             </div>
             {% endfor %}
