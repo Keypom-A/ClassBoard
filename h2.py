@@ -1,5 +1,3 @@
-print("LOADED:", __file__)
-
 import os
 import psycopg2
 import psycopg2.extras
