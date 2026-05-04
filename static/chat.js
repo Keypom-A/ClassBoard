@@ -1,5 +1,5 @@
 // ================================
-//  chat.js（完全版）
+//  chat.js（ClassBoard 完全版）
 // ================================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // --- バッジ更新 ---
         document.querySelectorAll(".chat-link").forEach(link => {
-            const rx = link.dataset.rx; // "all" or username
+            const rx = link.dataset.rx; // "all" or username or group
             const badge = link.querySelector(".badge-notify");
             if (!badge) return;
 
@@ -89,20 +89,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ================================
-    //  新着メッセージ検知
+    //  新着メッセージ検知（DM + GRP）
     // ================================
     function detectNewMessages(unread) {
         if (!lastUnread) return;
 
-        const partner = window.currentPartner;
-        if (!partner) return; // DMを開いていない
-
-        const prev = lastUnread[partner] || 0;
-        const now = unread[partner] || 0;
-
-        if (now > prev) {
-            refreshMessages();
+        // --- DM ---
+        if (window.currentPartner) {
+            const p = window.currentPartner;
+            const prev = lastUnread[p] || 0;
+            const now = unread[p] || 0;
+            if (now > prev) refreshMessages();
+            return;
         }
+
+        // --- グループ ---
+        if (window.currentGroup) {
+            const g = window.currentGroup;
+            const prev = lastUnread[g] || 0;
+            const now = unread[g] || 0;
+            if (now > prev) refreshMessages();
+            return;
+        }
+
+        // --- 全体チャット ---
+        const prevAll = lastUnread["all"] || 0;
+        const nowAll = unread["all"] || 0;
+        if (nowAll > prevAll) refreshMessages();
     }
 
     // ===== 未読数の定期更新 =====
