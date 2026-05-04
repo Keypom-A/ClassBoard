@@ -141,24 +141,57 @@ def mark_read():
 
     me = session["username"]
     data = request.get_json()
-    partner = data.get("partner")  # DM の相手の username
 
-    if not partner:
-        return jsonify({"error": "missing partner"}), 400
+    partner = data.get("partner")   # DM
+    group = data.get("group")       # グループ
+    room = data.get("room")         # 全体チャット（"all"）
 
     with get_db() as conn:
         with conn.cursor() as cur:
-            cur.execute("""
-                UPDATE chat_messages
-                SET is_read = TRUE
-                WHERE sender = %s
-                AND receiver = %s
-                AND is_read = FALSE
-            """, (partner, me))
-        conn.commit()
 
-    return jsonify({"status": "ok"})
+            # ============================
+            # ★ DM の既読処理
+            # ============================
+            if partner:
+                cur.execute("""
+                    UPDATE chat_messages
+                    SET is_read = TRUE
+                    WHERE receiver = %s
+                      AND username != %s
+                      AND is_read = FALSE
+                """, (partner, me))
+                conn.commit()
+                return jsonify({"status": "ok", "type": "dm"})
 
+            # ============================
+            # ★ グループの既読処理
+            # ============================
+            if group:
+                cur.execute("""
+                    UPDATE chat_messages
+                    SET is_read = TRUE
+                    WHERE receiver = %s
+                      AND username != %s
+                      AND is_read = FALSE
+                """, (f"grp_{group}", me))
+                conn.commit()
+                return jsonify({"status": "ok", "type": "group"})
+
+            # ============================
+            # ★ 全体チャットの既読処理
+            # ============================
+            if room == "all":
+                cur.execute("""
+                    UPDATE chat_messages
+                    SET is_read = TRUE
+                    WHERE receiver = 'all'
+                      AND username != %s
+                      AND is_read = FALSE
+                """, (me,))
+                conn.commit()
+                return jsonify({"status": "ok", "type": "all"})
+
+    return jsonify({"error": "invalid request"}), 400
 
 @app.route("/api/weather")
 def get_weather_api():
