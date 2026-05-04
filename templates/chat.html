@@ -1,89 +1,63 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>Chat</title>
-    <link rel="stylesheet" href="/static/chat.css">
-</head>
-<body>
+{% extends "index.html" %}
+{% block content %}
 
-<div id="container">
+<div class="chat-container">
 
-    <!-- ===== サイドバー ===== -->
-    <div id="sidebar">
-        <h2>Menu</h2>
-        <a href="/chat" class="chat-link" data-rx="all">
+    <h2 class="chat-title">
+        {% if group %}
+            グループ: {{ group }}
+        {% elif dm_user %}
+            DM: {{ dm_user }}
+        {% else %}
             全体チャット
-            <span class="badge-notify"></span>
-        </a>
+        {% endif %}
+    </h2>
 
-        <h2>Groups</h2>
-        {% for g in groups %}
-            <a href="/chat?group={{ g }}" class="chat-link" data-rx="{{ g }}">
-                {{ g }}
-                <span class="badge-notify"></span>
-            </a>
-        {% endfor %}
-        <button onclick="createGroup()">作成</button>
-        <button onclick="joinGroup()">参加</button>
+    <div id="chatDisplay">
 
-        <h2>Users</h2>
-        {% for u in users %}
-            <a href="/dm/{{ u }}" class="chat-link" data-rx="{{ u }}">
-                {{ u }}
-                <span class="badge-notify"></span>
-            </a>
-        {% endfor %}
-    </div>
+        {% for msg in messages %}
+        <div class="msg-row">
 
-    <!-- ===== メインエリア ===== -->
-    <div id="main">
+            <!-- 吹き出し -->
+            <div class="message {% if msg.username == username %}my-msg{% else %}other-msg{% endif %}">
+                <div class="user-name">{{ msg.username }}</div>
 
-        <!-- ===== チャット表示 ===== -->
-        <div id="chatDisplay">
-
-            {% for msg in messages %}
-            <div class="msg-row">
-
-                <!-- 吹き出し -->
-                <div class="message {% if msg.username == username %}my-msg{% else %}other-msg{% endif %}">
-                    <div class="user-name">{{ msg.username }}</div>
-
-                    <div class="msg-text" style="word-break: break-all;">
-                        {{ msg.message }}
-                    </div>
-
-                    {% if msg.file_path %}
-                    <div class="file-link">
-                        <a href="{{ msg.file_path }}" target="_blank">📎 ファイルを開く</a>
-                    </div>
-                    {% endif %}
+                <div class="msg-text" style="word-break: break-all;">
+                    {{ msg.message }}
                 </div>
 
-                <!-- 削除ボタン（自分のメッセージだけ） -->
-                {% if msg.username == username %}
-                <button class="delete-btn" data-id="{{ msg.id }}">削除</button>
+                {% if msg.file_path %}
+                <div class="file-link">
+                    <a href="{{ msg.file_path }}" target="_blank">📎 ファイルを開く</a>
+                </div>
                 {% endif %}
-
             </div>
-            {% endfor %}
+
+            <!-- 削除ボタン（自分のメッセージのみ） -->
+            {% if msg.username == username %}
+            <button class="delete-btn" data-id="{{ msg.id }}">削除</button>
+            {% endif %}
 
         </div>
-
-        <!-- ===== 送信フォーム ===== -->
-        <form id="sendForm">
-            <input id="messageInput" name="message" autocomplete="off" placeholder="メッセージを入力">
-            <button type="submit">送信</button>
-        </form>
+        {% endfor %}
 
     </div>
+
+    <!-- 送信フォーム -->
+    <form id="sendForm" enctype="multipart/form-data">
+        <input id="messageInput" name="message" autocomplete="off" placeholder="メッセージを入力">
+        <input type="file" id="fileInput" name="file">
+        <button type="submit">送信</button>
+    </form>
 
 </div>
 
 <script>
     const username = "{{ username }}";
+    const group = "{{ group }}";
+    const dm_user = "{{ dm_user }}";
 </script>
+
 <script src="/static/chat.js"></script>
 
-</body>
-</html>
+{% endblock %}
