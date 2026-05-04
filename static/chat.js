@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.documentElement.classList.add('dark-theme');
     }
 
-    // ===== メニュー開閉 =====
+    // ===== メニュー開閉（スマホ用） =====
     window.toggleMenu = function () {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('overlay').classList.toggle('open');
@@ -20,18 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (chatDisplay) {
         chatDisplay.scrollTop = chatDisplay.scrollHeight;
     }
-
-    // ===== グループ作成 =====
-    window.createGroup = function () {
-        const name = prompt("新しいグループの合言葉を決めてください");
-        if (name) location.href = "/chat?group=" + encodeURIComponent(name);
-    };
-
-    // ===== グループ参加 =====
-    window.joinGroup = function () {
-        const name = prompt("参加するグループの合言葉を入力してください");
-        if (name) location.href = "/chat?group=" + encodeURIComponent(name);
-    };
 
     // ================================
     //  メッセージ欄だけ更新（API版）
@@ -49,10 +37,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const div = document.createElement("div");
             div.className = msg.is_me ? "message my-msg" : "message other-msg";
-            div.innerHTML = `
+
+            let html = `
                 <div class="user-name">${msg.sender}</div>
-                <div style="word-break: break-all;">${msg.text}</div>
             `;
+
+            if (msg.file_path) {
+                html += `<img src="${msg.file_path}" style="max-width:200px;border-radius:8px;">`;
+            }
+
+            html += `<div style="word-break: break-all;">${msg.text}</div>`;
+
+            div.innerHTML = html;
             row.appendChild(div);
             box.appendChild(row);
         });
@@ -89,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ================================
-    //  新着メッセージ検知（DM + GRP）
+    //  新着メッセージ検知（DM + GRP + ALL）
     // ================================
     function detectNewMessages(unread) {
         if (!lastUnread) return;
@@ -97,25 +93,25 @@ document.addEventListener("DOMContentLoaded", () => {
         // --- DM ---
         if (window.currentPartner) {
             const p = window.currentPartner;
-            const prev = lastUnread[p] || 0;
-            const now = unread[p] || 0;
-            if (now > prev) refreshMessages();
+            if ((unread[p] || 0) > (lastUnread[p] || 0)) {
+                refreshMessages();
+            }
             return;
         }
 
         // --- グループ ---
         if (window.currentGroup) {
             const g = window.currentGroup;
-            const prev = lastUnread[g] || 0;
-            const now = unread[g] || 0;
-            if (now > prev) refreshMessages();
+            if ((unread[g] || 0) > (lastUnread[g] || 0)) {
+                refreshMessages();
+            }
             return;
         }
 
         // --- 全体チャット ---
-        const prevAll = lastUnread["all"] || 0;
-        const nowAll = unread["all"] || 0;
-        if (nowAll > prevAll) refreshMessages();
+        if ((unread["all"] || 0) > (lastUnread["all"] || 0)) {
+            refreshMessages();
+        }
     }
 
     // ===== 未読数の定期更新 =====
@@ -125,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ================================
     //  即時反映（送信した瞬間に吹き出し追加）
     // ================================
-    function appendMyMessage(text) {
+    function appendMyMessage(text, fileUrl = null) {
         const chatDisplay = document.getElementById("chatDisplay");
 
         const row = document.createElement("div");
@@ -134,10 +130,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const msg = document.createElement("div");
         msg.className = "message my-msg";
 
-        msg.innerHTML = `
+        let html = `
             <div class="user-name">${window.username}</div>
-            <div style="word-break: break-all;">${text}</div>
         `;
+
+        if (fileUrl) {
+            html += `<img src="${fileUrl}" style="max-width:200px;border-radius:8px;">`;
+        }
+
+        html += `<div style="word-break: break-all;">${text}</div>`;
+
+        msg.innerHTML = html;
 
         row.appendChild(msg);
         chatDisplay.appendChild(row);
@@ -156,18 +159,22 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
 
             const msg = messageInput.value.trim();
-            if (!msg) return;
+            const fileInput = sendForm.querySelector("input[type='file']");
+            const file = fileInput?.files[0] || null;
 
-            // 即時反映
+            if (!msg && !file) return;
+
+            // 即時反映（画像は Cloudinary アップ後に反映）
             appendMyMessage(msg);
 
-            messageInput.value = "";
+            const formData = new FormData(sendForm);
 
-            // サーバーへ送信
-            await fetch("/send_message", {
+            messageInput.value = "";
+            if (fileInput) fileInput.value = "";
+
+            await fetch(location.href, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: msg })
+                body: formData
             });
 
             // サーバー側の反映は自動更新に任せる
