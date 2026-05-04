@@ -53,6 +53,24 @@ document.addEventListener("click", function (e) {
     }
 });
 
+function leaveGroup(group) {
+    if (!confirm(`${group} から退出しますか？`)) return;
+
+    fetch("/api/leave_group", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ group })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = "/chat";
+        } else {
+            alert("退出に失敗しました");
+        }
+    });
+}
+
 // ================================
 // 未読バッジ更新
 // ================================
