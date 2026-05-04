@@ -197,6 +197,23 @@
             color: #fff;
             cursor: pointer;
         }
+
+     .delete-btn {
+         background: transparent;
+         border: none;
+         color: #bbb;
+         font-size: 14px;
+         cursor: pointer;
+         padding: 4px;
+         margin-left: 6px;
+         border-radius: 50%;
+         transition: 0.2s;
+     }
+        
+    .delete-btn:hover{
+        background: #ffe5e5
+        color: #ff4d4d;
+    }
     </style>
 </head>
 
@@ -206,6 +223,11 @@
 
     <!-- サイドバー -->
 <div class="sidebar">
+
+    <!-- ホームに戻る　-->
+    <a class="chat-link" href="/">
+        🏠 ホームへ戻る
+    </a>
 
     <!-- ① 全体チャット -->
     <h3>🌐 全体チャット</h3>
@@ -236,7 +258,7 @@
     <!-- ④ DM一覧 -->
     <h3>📨 DM</h3>
     {% for u in users %}
-        {% if u.username != username %}
+        {% if u.username != username and u.role != 'teacher' %}
         <a class="chat-link" href="/chat?user={{ u.username }}">
 
             {% if u.role == 'admin' %}
