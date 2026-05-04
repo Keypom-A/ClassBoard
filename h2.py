@@ -161,11 +161,11 @@ def unread_count():
             # ★ グループ（grp_◯◯）
             # ============================
             cur.execute("""
-                SELECT DISTINCT receiver
-                FROM chat_messages
-                WHERE receiver LIKE 'grp_%%'
-            """)
-            groups = [r["receiver"].replace("grp_", "") for r in cur.fetchall()]
+                SELECT group_name
+                FROM user_groups
+                WHERE username = %s
+            """,(me,))
+            groups = [r[0] for r in cur.fetchall()]
 
             for g in groups:
                 cur.execute("""
