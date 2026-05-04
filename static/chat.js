@@ -66,6 +66,25 @@ document.addEventListener("click", function (e) {
     }
 });
 
+function createGroup() {
+    const name = prompt("作成するグループ名を入力してください");
+    if (!name) return;
+
+    fetch("/api/create_group", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ group: name })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = `/chat?group=${name}`;
+        } else {
+            alert("作成に失敗しました");
+        }
+    });
+}
+
 function leaveGroup(group) {
     if (!confirm(`${group} から退出しますか？`)) return;
 
