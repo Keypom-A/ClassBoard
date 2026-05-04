@@ -30,30 +30,28 @@ document.addEventListener("DOMContentLoaded", () => {
         const name = prompt("参加するグループの合言葉を入力してください");
         if (name) location.href = "/chat?group=" + encodeURIComponent(name);
     };
-    
+
+    // ===== メッセージ欄だけ更新 =====
     async function refreshMessages() {
-    const url = window.location.href;
-    const res = await fetch(url);
-    const html = await res.text();
+        const url = window.location.href;
+        const res = await fetch(url);
+        const html = await res.text();
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
-    const newDisplay = doc.getElementById("chatDisplay");
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const newDisplay = doc.getElementById("chatDisplay");
 
-    if (newDisplay) {
-        document.getElementById("chatDisplay").innerHTML = newDisplay.innerHTML;
+        if (newDisplay) {
+            document.getElementById("chatDisplay").innerHTML = newDisplay.innerHTML;
 
-        // 自動スクロール
-        const chatDisplay = document.getElementById('chatDisplay');
-        chatDisplay.scrollTop = chatDisplay.scrollHeight;
+            const chatDisplay = document.getElementById('chatDisplay');
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+        }
     }
-}
 
+    // ===== 未読バッジ更新 =====
+    let lastUnreadCount = 0;
 
-    
-   let lastUnreadCount = 0;  // ← 追加
-
-   // ===== 未読バッジ更新 =====
     async function updateUnreadBadges() {
         const res = await fetch("/api/unread_count");
         const data = await res.json();
@@ -76,11 +74,60 @@ document.addEventListener("DOMContentLoaded", () => {
         if (totalUnread > lastUnreadCount) {
             refreshMessages();
         }
-        
-        lastUnreadCount = totalUnread;  // ← ここで更新
+
+        lastUnreadCount = totalUnread;
     }
 
     setInterval(updateUnreadBadges, 3000);
     updateUnreadBadges();
+
+    // ===== 即時反映（送信した瞬間に吹き出し追加） =====
+    function appendMyMessage(text) {
+        const chatDisplay = document.getElementById("chatDisplay");
+
+        const row = document.createElement("div");
+        row.className = "msg-row";
+
+        const msg = document.createElement("div");
+        msg.className = "message my-msg";
+
+        msg.innerHTML = `
+            <div class="user-name">${username}</div>
+            <div style="word-break: break-all;">${text}</div>
+        `;
+
+        row.appendChild(msg);
+        chatDisplay.appendChild(row);
+
+        chatDisplay.scrollTop = chatDisplay.scrollHeight;
+    }
+
+    // ===== 送信イベント（即時反映 + サーバー送信） =====
+    const sendForm = document.getElementById("sendForm");
+    const messageInput = document.getElementById("messageInput");
+
+    if (sendForm) {
+        sendForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const msg = messageInput.value.trim();
+            if (!msg) return;
+
+            // ★ 即時反映
+            appendMyMessage(msg);
+
+            // 入力欄クリア
+            messageInput.value = "";
+
+            // サーバーへ送信
+            await fetch("/send_message", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: msg })
+            });
+
+            // サーバー側の反映は自動更新に任せる
+        });
+    }
 
 });
