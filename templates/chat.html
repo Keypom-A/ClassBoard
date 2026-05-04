@@ -149,6 +149,25 @@
             display: none;
         }
 
+
+        
+        @media (max-width: 768px) {
+            #sidebar {
+                height: calc(var(--vh, 1vh) * 100);
+            }
+        }
+
+        @media (max-width: 768px) {
+            #chatDisplay {
+                max-height: calc(var(--vh, 1vh) * 100 - 120px);
+                overflow-y: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                height: calc(var(--vh, 1vh) * 100);}
+        }
         @media (max-width: 768px) {
 
             #hamburger {
@@ -285,5 +304,16 @@
     </script>
 
     <script src="/static/chat.js"></script>
+    <script>
+    // スマホの 100vh 問題を解決するための処理
+    function setVh() {
+        document.documentElement.style.setProperty(
+            '--vh',
+            `${window.innerHeight * 0.01}px`
+        );
+    }
+    setVh();
+    window.addEventListener('resize', setVh);
+    </script>
 </body>
 </html>
