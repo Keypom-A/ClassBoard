@@ -70,29 +70,6 @@ import json
 import urllib.request
 from flask import jsonify
 
-@app.route("/api/join_group", methods=["POST"])
-def api_join_group():
-    if "username" not in session:
-        return jsonify({"success": False}), 403
-
-    me = session["username"]
-    data = request.get_json()
-    group = data.get("group")
-
-    if not group:
-        return jsonify({"success": False}), 400
-
-    with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO user_groups (username, group_name)
-                VALUES (%s, %s)
-                ON CONFLICT DO NOTHING
-            """, (me, group))
-            conn.commit()
-
-    return jsonify({"success": True})
-
 @app.route("/api/leave_group", methods=["POST"])
 def api_leave_group():
     if "username" not in session:
@@ -179,6 +156,30 @@ def unread_count():
 
     return jsonify({"unread": unread})
   
+@app.route("/api/join_group", methods=["POST"])
+def api_join_group():
+    if "username" not in session:
+        return jsonify({"success": False}), 403
+
+    me = session["username"]
+    data = request.get_json()
+    group = data.get("group")
+
+    if not group:
+        return jsonify({"success": False}), 400
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO user_groups (username, group_name)
+                VALUES (%s, %s)
+                ON CONFLICT DO NOTHING
+            """, (me, group))
+            conn.commit()
+
+    return jsonify({"success": True})
+
+
 @app.route("/api/delete_message", methods=["POST"])
 def api_delete_message():
     if "username" not in session:
