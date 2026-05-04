@@ -1,63 +1,288 @@
-{% extends "index.html" %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ClassBoard Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<div class="chat-container">
+    <style>
+        body.chat-page {
+            margin: 0;
+            font-family: system-ui, sans-serif;
+            background: #f0f2f5;
+        }
 
-    <h2 class="chat-title">
-        {% if group %}
-            グループ: {{ group }}
-        {% elif dm_user %}
-            DM: {{ dm_user }}
-        {% else %}
-            全体チャット
-        {% endif %}
-    </h2>
+        .layout {
+            display: flex;
+            height: 100vh;
+        }
 
-    <div id="chatDisplay">
+        .menu-btn {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1100;
+            background: #007bff;
+            color: #fff;
+            border-radius: 4px;
+            padding: 6px 10px;
+            border: none;
+            cursor: pointer;
+        }
 
-        {% for msg in messages %}
-        <div class="msg-row">
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.3);
+            z-index: 900;
+        }
 
-            <!-- 吹き出し -->
-            <div class="message {% if msg.username == username %}my-msg{% else %}other-msg{% endif %}">
-                <div class="user-name">{{ msg.username }}</div>
+        .overlay.open {
+            display: block;
+        }
 
-                <div class="msg-text" style="word-break: break-all;">
-                    {{ msg.message }}
-                </div>
+        .sidebar {
+            width: 240px;
+            background: #fff;
+            border-right: 1px solid #ddd;
+            padding: 15px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
 
-                {% if msg.file_path %}
-                <div class="file-link">
-                    <a href="{{ msg.file_path }}" target="_blank">📎 ファイルを開く</a>
-                </div>
-                {% endif %}
-            </div>
+        .sidebar h3 {
+            margin: 15px 0 10px 0;
+            font-size: 0.85em;
+            color: #999;
+            letter-spacing: 1px;
+        }
 
-            <!-- 削除ボタン（自分のメッセージのみ） -->
-            {% if msg.username == username %}
-            <button class="delete-btn" data-id="{{ msg.id }}">削除</button>
-            {% endif %}
+        .chat-link {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 4px;
+            text-decoration: none;
+            color: #444;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 14px;
+            transition: 0.2s;
+        }
 
-        </div>
-        {% endfor %}
+        .chat-link:hover {
+            background: #f0f4f8;
+        }
 
+        .chat-link.active {
+            background: #007bff;
+            color: #fff !important;
+        }
+
+        .group-ops {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .btn-op {
+            flex: 1;
+            text-align: center;
+            font-size: 12px;
+            padding: 6px 4px;
+            border-radius: 6px;
+            background: #f5f5f5;
+            text-decoration: none;
+            color: #555;
+        }
+
+        .btn-op:hover {
+            background: #e5e5e5;
+        }
+
+        .badge-notify {
+            display: inline-block;
+            min-width: 18px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: #ff4757;
+            color: #fff;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .main-chat {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            background: #f0f2f5;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .chat-display {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .msg-row {
+            width: 100%;
+            display: flex;
+        }
+
+        .message {
+            display: inline-block;
+            max-width: 70%;
+            padding: 8px 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            word-break: break-word;
+        }
+
+        .my-msg {
+            margin-left: auto;
+            background: #d9f2ff;
+        }
+
+        .message:not(.my-msg) {
+            margin-right: auto;
+            background: #fff;
+        }
+
+        .user-name {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .chat-input-area {
+            padding: 10px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-row input[type="text"] {
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        .input-row .send {
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: none;
+            background: #007bff;
+            color: #fff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body class="chat-page">
+
+<div class="layout">
+
+    <!-- サイドバー -->
+    <div class="sidebar">
+        {{ sidebar_html|safe }}
     </div>
 
-    <!-- 送信フォーム -->
-    <form id="sendForm" enctype="multipart/form-data">
-        <input id="messageInput" name="message" autocomplete="off" placeholder="メッセージを入力">
-        <input type="file" id="fileInput" name="file">
-        <button type="submit">送信</button>
-    </form>
+    <!-- メインチャット -->
+    <div class="main-chat">
 
+        <div class="chat-header">
+            {% if group %}
+                グループ: {{ group }}
+            {% elif partner %}
+                DM: {{ partner }}
+            {% else %}
+                全体チャット
+            {% endif %}
+        </div>
+
+        <div class="chat-display">
+
+            {% for msg in messages %}
+            <div class="msg-row">
+
+                <div class="message {% if msg.username == username %}my-msg{% else %}other-msg{% endif %}">
+                    <div class="user-name">{{ msg.username }}</div>
+
+                    <div style="word-break: break-all;">
+                        {{ msg.message }}
+                    </div>
+
+                    {% if msg.file_path %}
+                    <div style="margin-top:5px;">
+                        <a href="{{ msg.file_path }}" target="_blank"
+                           style="font-size:0.8em; color:#007bff; text-decoration:none;">
+                            📎 ファイルを表示
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if msg.username == username %}
+                <button class="delete-btn" data-id="{{ msg.id }}">削除</button>
+                {% endif %}
+
+            </div>
+            {% endfor %}
+
+        </div>
+
+        <div class="chat-input-area">
+            <form action="{{ url_for('chat', user=partner, group=group) }}"
+                  method="post"
+                  enctype="multipart/form-data"
+                  class="input-row">
+
+                {% if group %}
+                    <input type="hidden" name="receiver" value="group">
+                {% elif partner %}
+                    <input type="hidden" name="receiver" value="{{ partner }}">
+                {% else %}
+                    <input type="hidden" name="receiver" value="all">
+                {% endif %}
+
+                <label style="cursor:pointer; font-size:1.4em;">
+                    📎
+                    <input type="file" name="file" style="display:none;"
+                           onchange="this.parentElement.style.color='#007bff'">
+                </label>
+
+                <input type="text" name="message" placeholder="メッセージを入力..." autocomplete="off">
+
+                <button type="submit" class="send">送信</button>
+            </form>
+        </div>
+
+    </div>
 </div>
-
-<script>
-    const username = "{{ username }}";
-    const group = "{{ group }}";
-    const dm_user = "{{ dm_user }}";
-</script>
 
 <script src="/static/chat.js"></script>
 
-{% endblock %}
+</body>
+</html>
