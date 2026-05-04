@@ -206,8 +206,33 @@
 
     <!-- サイドバー -->
     <div class="sidebar">
-        {{ sidebar_html|safe }}
+        <h3>メニュー</h3>
+
+        <a class="chat-link" href="/chat">
+            全体チャット
+        </a>
+
+        <h3>DM</h3>
+        {% for user in dm_users %}
+        <a class="chat-link" href="/chat?user={{ user }}">
+            {{ user }}
+            {% if unread_dm[user] > 0 %}
+            <span class="badge-notify">{{ unread_dm[user] }}</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+
+        <h3>グループ</h3>
+        {% for g in groups %}
+        <a class="chat-link" href="/chat?group={{ g }}">
+            {{ g }}
+            {% if unread_group[g] > 0 %}
+            <span class="badge-notify">{{ unread_group[g] }}</span>
+            {% endif %}
+        </a>
+        {% endfor %}
     </div>
+
 
     <!-- メインチャット -->
     <div class="main-chat">
