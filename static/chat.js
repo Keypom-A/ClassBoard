@@ -33,21 +33,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ===== メッセージ欄だけ更新 =====
     async function refreshMessages() {
-        const url = window.location.href;
-        const res = await fetch(url);
-        const html = await res.text();
+        const res = await fetch(`/api/messages${location.search}`);
+        const messages = await res.json();
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-        const newDisplay = doc.getElementById("chatDisplay");
+        const box = document.getElementById("chatDisplay");
+        box.innerHTML = "";
 
-        if (newDisplay) {
-            document.getElementById("chatDisplay").innerHTML = newDisplay.innerHTML;
+        messages.forEach(msg => {
+            const row = document.createElement("div");
+            row.className = "msg-row";
 
-            const chatDisplay = document.getElementById('chatDisplay');
-            chatDisplay.scrollTop = chatDisplay.scrollHeight;
-        }
+            const div = document.createElement("div");
+            div.className = msg.is_me ? "message my-msg" : "message other-msg";
+            div.innerHTML = `
+                <div class="user-name">${msg.sender}</div>
+                <div style="word-break: break-all;">${msg.text}</div>
+            `;
+            row.appendChild(div);
+            box.appendChild(row);
+         });
+
+         box.scrollTop = box.scrollHeight;
     }
+
 
     // ===== 未読バッジ更新 =====
     let lastUnreadCount = 0;
@@ -71,7 +79,11 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         // ★ 新着メッセージが来たらメッセージ欄を更新
-        if (totalUnread > lastUnreadCount) {
+        const partener = window.currentPartner
+        const prev = lastUnreadCountMap[partner] || 0;
+        const now = unread[partner] ||0;
+        
+        if (now > prev) {
             refreshMessages();
         }
 
