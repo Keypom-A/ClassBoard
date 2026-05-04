@@ -299,13 +299,16 @@
             <div class="chat-display" id="chatDisplay">
                 {% for msg in messages %}
                 <div class="msg-row">
-                    <div class="message {% if msg.username == username %}my-msg{% endif %}">
-                        <div class="user-name">
-                            {{ msg.username }}
+                    <div class="message {% if msg.username == username %}my-msg{% else %}other-msg{% endif %}">
+                        <div class="user-name">{{ msg.username }}</div>
+                        <div>{{ msg.message }}</div>
+
+                        {% if msg.username == username %}
                         <span style="font-weight:normal; color:#ccc; font-size:0.8em; margin-left:5px;">
-                            {{ msg.created_at }}
-                        </span>
+                                 <button class="delete-btn" data-id="{{ msg.id }}">削除</button>
+                        {% endif %}
                     </div>
+                </div>
 
                     <div style="word-break: break-all;">
                         {{ msg.message }}
