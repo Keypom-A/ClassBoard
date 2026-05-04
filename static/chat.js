@@ -127,6 +127,23 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             // サーバー側の反映は自動更新に任せる
+
+// ===== メッセージ削除 =====
+document.addEventListener("click", async (e) => {
+    if (e.target.classList.contains("delete-btn")) {
+        const id = e.target.dataset.id;
+
+        // 確認ダイアログ
+        if (!confirm("このメッセージを削除しますか？")) return;
+
+        // サーバーへ削除リクエスト
+        await fetch(`/api/delete_message/${id}`, {
+            method: "DELETE"
+        });
+
+        // 再描画
+        refreshMessages();
+
         });
     }
 
