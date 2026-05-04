@@ -320,7 +320,7 @@ def chat():
         my_groups=my_groups,
         users=users,
         last_ids=last_ids,
-        username=me
+        username=me,
         groups=my_groups,          # ← グループ一覧
         dm_users=[u['username'] for u in users if u['username'] != me],  # ← DM一覧
         unread_group={g: 0 for g in my_groups},  # ← とりあえず0でOK（後で実装）
