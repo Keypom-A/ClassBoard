@@ -175,6 +175,18 @@
             gap: 8px;
         }
 
+        .leave-btn {
+            margin-left: auto;
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .leave-btn:hover {
+            color: #ff4d4d;
+        }
+        
         .input-row input[type="text"] {
             flex: 1;
             padding: 8px 10px;
@@ -293,6 +305,7 @@
         <div class="chat-header">
             {% if group %}
                 グループ: {{ group }}
+                 <button class="leave-btn" onclick="leaveGroup('{{ group }}')">🚪 退出</button>
             {% elif partner %}
                 DM: {{ partner }}
             {% else %}
