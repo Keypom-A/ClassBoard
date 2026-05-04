@@ -77,32 +77,62 @@ def unread_count():
 
     me = session["username"]
 
-    with get_db() as conn:
-        with conn.cursor() as cur:
+    unread = {}
 
-            # ★ 全体チャットの未読数（receiver='all'）
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+
+            # ============================
+            # ★ 全体チャット
+            # ============================
             cur.execute("""
                 SELECT COUNT(*)
                 FROM chat_messages
-                WHERE receiver = 'all' AND is_read = FALSE
-            """)
-            unread_all = cur.fetchone()[0]
-
-            # ★ DM の未読数（相手ごと）
-            cur.execute("""
-                SELECT sender, COUNT(*)
-                FROM chat_messages
-                WHERE receiver = %s AND is_read = FALSE
-                GROUP BY sender
+                WHERE receiver = 'all'
+                  AND is_read = FALSE
+                  AND username != %s
             """, (me,))
-            rows = cur.fetchall()
+            unread["all"] = cur.fetchone()[0]
 
-    # { "相手の名前": 未読数 } の形に変換
-    unread_map = {"all": unread_all}
-    for sender, count in rows:
-        unread_map[sender] = count
+            # ============================
+            # ★ DM（相手ごと）
+            # ============================
+            cur.execute("""
+                SELECT username FROM users WHERE username != %s
+            """, (me,))
+            dm_users = [r["username"] for r in cur.fetchall()]
 
-    return jsonify({"unread": unread_map})
+            for u in dm_users:
+                cur.execute("""
+                    SELECT COUNT(*)
+                    FROM chat_messages
+                    WHERE receiver = %s
+                      AND is_read = FALSE
+                      AND username != %s
+                """, (u, me))
+                unread[u] = cur.fetchone()[0]
+
+            # ============================
+            # ★ グループ（grp_◯◯）
+            # ============================
+            cur.execute("""
+                SELECT DISTINCT receiver
+                FROM chat_messages
+                WHERE receiver LIKE 'grp_%%'
+            """)
+            groups = [r["receiver"].replace("grp_", "") for r in cur.fetchall()]
+
+            for g in groups:
+                cur.execute("""
+                    SELECT COUNT(*)
+                    FROM chat_messages
+                    WHERE receiver = %s
+                      AND is_read = FALSE
+                      AND username != %s
+                """, (f"grp_{g}", me))
+                unread[g] = cur.fetchone()[0]
+
+    return jsonify({"unread": unread})
 
 @app.route("/api/mark_read", methods=["POST"])
 def mark_read():
