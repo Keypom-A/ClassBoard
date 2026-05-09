@@ -410,20 +410,7 @@ document.querySelectorAll(".delete-btn").forEach(btn => {
 const chatDisplay = document.querySelector(".chat-display");
 chatDisplay.scrollTop = chatDisplay.scrollHeight;
 
-function createGroup() {
-    const name = prompt("作成するグループ名を入力してください");
-    if (name && name.trim() !== "") {
-        window.location.href = `/create_group?name=${encodeURIComponent(name)}`;
-    }
-}
-
-function joinGroup() {
-    const name = prompt("参加するグループ名を入力してください");
-    if (name && name.trim() !== "") {
-        window.location.href = `/join_group?name=${encodeURIComponent(name)}`;
-    }
-}
-
+src="/static/chat.js"
 </script>
 
 </body>
