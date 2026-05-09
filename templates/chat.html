@@ -327,13 +327,16 @@
     </div>
     <!-- ★★★ ここまで ★★★ -->
 
-    {% for msg in messages %}
+    {% for msg in all_msgs %}
     <div class="msg-row">
 
-        <div class="message {% if msg.username == username %}my-msg{% else %}other-msg{% endif %}">
-            <div class="user-name">{{ msg.username }}</div>
+         <div class="message {% if msg.username == username %}my-msg{% else %}other-msg{% endif %}">
+            <div class="user-name">
+                {{ msg.username }}
+                <span class="msg-time">{{ msg.created_at }}</span>
+            </div>
 
-            <div>{{ msg.message }}</div>
+            <div class="msg-text">{{ msg.message }}</div>
 
             {% if msg.file_path %}
             <div style="margin-top:5px;">
