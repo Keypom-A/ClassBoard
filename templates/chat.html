@@ -410,8 +410,7 @@ document.querySelectorAll(".delete-btn").forEach(btn => {
 const chatDisplay = document.querySelector(".chat-display");
 chatDisplay.scrollTop = chatDisplay.scrollHeight;
 
-src="/static/chat.js"
 </script>
-
+<script src="{{ url_for('static', filename='chat.js') }}"></script>
 </body>
 </html>
