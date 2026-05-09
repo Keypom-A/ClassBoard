@@ -509,10 +509,10 @@ def chat():
                 """)
 
             raw_messages = cur.fetchall()
-          # Botメッセージ読み込み
+
+            # Botメッセージ読み込み
             cur.execute("SELECT * FROM bot_messages ORDER BY id ASC")
             bot_messages = cur.fetchall()
-
 
             # ----------------------------
             # 6. 既読処理
@@ -553,38 +553,36 @@ def chat():
                     "file_path": m["file_path"],
                     "created_at": m["created_at"],
                 })
-              # ----------------------------
-              # 7.5 ユーザー + Bot 統合タイムライン
-              # ----------------------------
-              all_msgs = []
 
-              # ユーザーのメッセージ
-              for m in messages:
-                  all_msgs.append({
-                      "id": m["id"],
-                      "username": m["username"],
-                      "message": m["message"],
-                      "created_at": m["created_at"],
-                      "file_path": m["file_path"],
-                      "type": "user"
-                  })
+            # ----------------------------
+            # 7.5 ユーザー + Bot 統合タイムライン
+            # ----------------------------
+            all_msgs = []
 
-              # Bot のメッセージ（DictCursor ではない可能性が高いので tuple 対応）
-              for b in bot_messages:
-                  all_msgs.append({
-                      "id": b[0],
-                      "username": "ClassBot",
-                      "message": b[1],
-                      "created_at": b[2],
-                      "file_path": None,
-                      "type": "bot"
-                  })
+            # ユーザーのメッセージ
+            for m in messages:
+                all_msgs.append({
+                    "id": m["id"],
+                    "username": m["username"],
+                    "message": m["message"],
+                    "created_at": m["created_at"],
+                    "file_path": m["file_path"],
+                    "type": "user"
+                })
 
-              # 時刻順に並べる
-              all_msgs = sorted(all_msgs, key=lambda x: x["created_at"])
+            # Bot のメッセージ（tuple 対応）
+            for b in bot_messages:
+                all_msgs.append({
+                    "id": b[0],
+                    "username": "ClassBot",
+                    "message": b[1],
+                    "created_at": b[2],
+                    "file_path": None,
+                    "type": "bot"
+                })
 
-
-
+            # 時刻順に並べる
+            all_msgs = sorted(all_msgs, key=lambda x: x["created_at"])
 
             # ----------------------------
             # 8. 未読数
@@ -631,8 +629,7 @@ def chat():
     # ----------------------------
     return render_template(
         "chat.html",
-        messages=messages,
-        bot_messages=bot_messages,
+        all_msgs=all_msgs,
         partner=partner,
         group=group,
         users=users,
@@ -642,6 +639,7 @@ def chat():
         unread_group=unread_group,
         unread_dm=unread_dm
     )
+
 
 @app.route('/api/bot/morning_schedule')
 def morning_schedule():
