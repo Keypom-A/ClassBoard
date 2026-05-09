@@ -664,7 +664,7 @@ def morning_schedule():
             # ============================
             # 4. ClassBot としてチャットに投稿
             # ============================
-            created_at = now.strftime('%m/%d %H:%M')
+            created_at = now.strftime('%Y-%m-%d %H:%M')
 
             cur.execute("""
                 INSERT INTO chat_messages (username, message, receiver, file_path, created_at)
