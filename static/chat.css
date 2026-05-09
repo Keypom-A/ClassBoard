@@ -144,3 +144,70 @@
 #sendForm button:hover {
     background: #005fcc;
 }
+
+/* ============================
+   ClassBot 専用タイムライン
+   ============================ */
+
+.bot-area {
+    background: #eef6ff;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    border: 1px solid #d0e4ff;
+}
+
+.bot-area h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    font-weight: bold;
+    color: #2a6fbd;
+}
+
+/* Bot の1メッセージ */
+.bot-message {
+    background: #ffffff;
+    border-left: 4px solid #4a90e2;
+    padding: 10px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* 日付部分 */
+.bot-time {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+/* メッセージ本文（改行保持） */
+.bot-text {
+    white-space: pre-wrap;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+}
+
+/* ============================
+   Bot メッセージを読みやすくする調整
+   ============================ */
+
+.bot-message:hover {
+    background: #f7fbff;
+    transition: 0.2s;
+}
+
+.bot-area::-webkit-scrollbar {
+    width: 6px;
+}
+
+.bot-area::-webkit-scrollbar-thumb {
+    background: #bcd4f5;
+    border-radius: 3px;
+}
+
+.bot-area::-webkit-scrollbar-track {
+    background: #eef6ff;
+}
+
