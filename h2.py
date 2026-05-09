@@ -509,6 +509,10 @@ def chat():
                 """)
 
             raw_messages = cur.fetchall()
+          # Botメッセージ読み込み
+            cur.execute("SELECT * FROM bot_messages ORDER BY id ASC")
+            bot_messages = cur.fetchall()
+
 
             # ----------------------------
             # 5. Botメッセージ読み込み
