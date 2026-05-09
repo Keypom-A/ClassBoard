@@ -605,6 +605,75 @@ def chat():
         unread_dm=unread_dm
     )
 
+@app.route('/api/bot/morning_schedule')
+def morning_schedule():
+    from datetime import datetime
+    import psycopg2.extras
+
+    # 今日の日付と曜日（JST）
+    now = get_now_jst()
+    today_str = now.strftime("%Y-%m-%d")
+    weekday = now.weekday()  # 0=月, 1=火...
+
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+
+            # ============================
+            # 1. 特別時間割（is_changed=1）を探す
+            # ============================
+            cur.execute("""
+                SELECT priod, subject
+                FROM timetable
+                WHERE date = %s AND is_changed = 1
+                ORDER BY priod ASC
+            """, (today_str,))
+            special = cur.fetchall()
+
+            if special:
+                rows = special
+            else:
+                # ============================
+                # 2. 通常の曜日時間割（is_changed=0）
+                # ============================
+                cur.execute("""
+                    SELECT priod, subject
+                    FROM timetable
+                    WHERE day_of_week = %s AND is_changed = 0
+                    ORDER BY priod ASC
+                """, (weekday,))
+                rows = cur.fetchall()
+
+            # ============================
+            # 3. 時間割メッセージを組み立てる（Bタイプ）
+            # ============================
+            message_lines = [
+                "🌅 おはよう！",
+                "今日の時間割はこれだよ👇"
+            ]
+
+            # 1〜6限を埋める
+            for r in rows:
+                p = r["priod"]
+                sub = r["subject"]
+                message_lines.append(f"{p}限：{sub}")
+
+            message_lines.append("今日もがんばろう！")
+
+            final_message = "\n".join(message_lines)
+
+            # ============================
+            # 4. ClassBot としてチャットに投稿
+            # ============================
+            created_at = now.strftime('%m/%d %H:%M')
+
+            cur.execute("""
+                INSERT INTO chat_messages (username, message, receiver, file_path, created_at)
+                VALUES (%s, %s, %s, %s, %s)
+            """, ("ClassBot", final_message, "all", None, created_at))
+            conn.commit()
+
+    return "OK"
+
 @app.route('/timetable', methods=['GET', 'POST'])
 def timetable():
     if 'username' not in session: return redirect(url_for('login'))
