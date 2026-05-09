@@ -515,16 +515,6 @@ def chat():
 
 
             # ----------------------------
-            # 5. Botメッセージ読み込み
-            # ----------------------------
-            cur.execute("""
-                SELECT *
-                FROM bot_messages
-                ORDER BY id ASC
-            """)
-            bot_messages = cur.fetchall()
-
-            # ----------------------------
             # 6. 既読処理
             # ----------------------------
             if partner:
