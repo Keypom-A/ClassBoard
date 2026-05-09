@@ -571,16 +571,16 @@ def chat():
                 })
 
             # Bot のメッセージ（tuple 対応）
-           if not partner and not group:
-               for b in bot_messages:
-                   all_msgs.append({
-                       "id": b[0],
-                       "username": "ClassBot",
-                       "message": b[1],
-                       "created_at": b[2],
-                       "file_path": None,
-                       "type": "bot"
-                   })
+            if not partner and not group:
+                for b in bot_messages:
+                    all_msgs.append({
+                        "id": b[0],
+                        "username": "ClassBot",
+                        "message": b[1],
+                        "created_at": b[2],
+                        "file_path": None,
+                        "type": "bot"
+                    })
 
             # 時刻順に並べる
             all_msgs = sorted(all_msgs, key=lambda x: x["created_at"])
