@@ -463,7 +463,7 @@ def chat():
                         print("Cloudinary Error:", e)
 
                 # 送信先判定
-                if group:
+                if group: is not None:
                     receiver = f"grp_{group}"
                 elif partner:
                     receiver = partner
