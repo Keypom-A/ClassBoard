@@ -553,30 +553,38 @@ def chat():
                     "file_path": m["file_path"],
                     "created_at": m["created_at"],
                 })
+              # ----------------------------
+              # 7.5 ユーザー + Bot 統合タイムライン
+              # ----------------------------
+              all_msgs = []
 
-            all_msgs=[]
-
-            for m in messages:
-                all_msgs.append({
-                    "id": m["id"],
-                    "username": m["username"],
-                    "message": m["message"],
-                    "created_at": m["created_at"],
-                    "file_path": m["file_path"],
-                    "type": "user"
+              # ユーザーのメッセージ
+              for m in messages:
+                  all_msgs.append({
+                      "id": m["id"],
+                      "username": m["username"],
+                      "message": m["message"],
+                      "created_at": m["created_at"],
+                      "file_path": m["file_path"],
+                      "type": "user"
                   })
 
-            for b in bot_messages:
-                all_msgs.append({
-                    "id": b["id"],
-                    "username": "ClassBot",
-                    "message": b["message"],
-                    "created_at": b["created_at"],
-                    "file_path": None,
-                    "type": "bot"
-                })
+              # Bot のメッセージ（DictCursor ではない可能性が高いので tuple 対応）
+              for b in bot_messages:
+                  all_msgs.append({
+                      "id": b[0],
+                      "username": "ClassBot",
+                      "message": b[1],
+                      "created_at": b[2],
+                      "file_path": None,
+                      "type": "bot"
+                  })
 
-            all_msgs = sorted(all_msgs, key=lambda x: x["created_at"])
+              # 時刻順に並べる
+              all_msgs = sorted(all_msgs, key=lambda x: x["created_at"])
+
+
+
 
             # ----------------------------
             # 8. 未読数
