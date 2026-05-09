@@ -554,19 +554,19 @@ def chat():
                     "created_at": m["created_at"],
                 })
 
-          all_msgs=[]
+            all_msgs=[]
 
-          for m in messages:
-            all_msgs.append({
-                "id": m["id"],
-                "username": m["username"],
-                "message": m["message"],
-                "created_at": m["created_at"],
-                "file_path": m["file_path"],
-                "type": "user"
-              })
+            for m in messages:
+                all_msgs.append({
+                    "id": m["id"],
+                    "username": m["username"],
+                    "message": m["message"],
+                    "created_at": m["created_at"],
+                    "file_path": m["file_path"],
+                    "type": "user"
+                  })
 
-             for b in bot_messages:
+            for b in bot_messages:
                 all_msgs.append({
                     "id": b["id"],
                     "username": "ClassBot",
