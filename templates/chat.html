@@ -315,32 +315,44 @@
 
         <div class="chat-display">
 
-            {% for msg in messages %}
-            <div class="msg-row">
-
-                <div class="message {% if msg.username == username %}my-msg{% else %}other-msg{% endif %}">
-                    <div class="user-name">{{ msg.username }}</div>
-
-                    <div>{{ msg.message }}</div>
-
-                    {% if msg.file_path %}
-                    <div style="margin-top:5px;">
-                        <a href="{{ msg.file_path }}" target="_blank"
-                           style="font-size:0.8em; color:#007bff; text-decoration:none;">
-                            📎 ファイルを表示
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-
-                {% if msg.username == username %}
-                <button class="delete-btn" data-id="{{ msg.id }}">✕</button>
-                {% endif %}
-
-            </div>
-            {% endfor %}
-
+    <!-- ★★★ ClassBot タイムライン ★★★ -->
+    <div class="bot-area">
+      <h3>🤖 ClassBot</h3>
+      {% for b in bot_messages %}
+        <div class="bot-message">
+          <div class="bot-time">{{ b.created_at }}</div>
+          <pre class="bot-text">{{ b.message }}</pre>
         </div>
+      {% endfor %}
+    </div>
+    <!-- ★★★ ここまで ★★★ -->
+
+    {% for msg in messages %}
+    <div class="msg-row">
+
+        <div class="message {% if msg.username == username %}my-msg{% else %}other-msg{% endif %}">
+            <div class="user-name">{{ msg.username }}</div>
+
+            <div>{{ msg.message }}</div>
+
+            {% if msg.file_path %}
+            <div style="margin-top:5px;">
+                <a href="{{ msg.file_path }}" target="_blank"
+                   style="font-size:0.8em; color:#007bff; text-decoration:none;">
+                    📎 ファイルを表示
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if msg.username == username %}
+        <button class="delete-btn" data-id="{{ msg.id }}">✕</button>
+        {% endif %}
+
+    </div>
+    {% endfor %}
+
+</div>
 
         <div class="chat-input-area">
             <form action="{{ url_for('chat', user=partner, group=group) }}"
