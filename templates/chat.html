@@ -3,59 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <title>ClassBoard Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
-        body {
-            font-family: sans-serif;
-            background: #f5f5f5;
+        body.chat-page {
             margin: 0;
-            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Emoji",
+                         "Segoe UI Symbol", "Noto Color Emoji",
+                         "Noto Emoji", system-ui, sans-serif;
+            background: #f0f2f5;
         }
 
-        .chat-container {
-            width: 100%;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
+        .layout {
+            display: flex;
+            height: calc(var(--vh, 1vh) * 100);
+        }
+
+        /* サイドバー */
+        .sidebar {
+            width: 240px;
+            background: #fff;
+            border-right: 1px solid #ddd;
+            padding: 15px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar h3 {
+            margin: 15px 0 10px 0;
+            font-size: 0.85em;
+            color: #999;
+            letter-spacing: 1px;
+        }
+
+        .chat-link {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 4px;
+            text-decoration: none;
+            color: #444;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        .chat-link:hover {
+            background: #f0f4f8;
+        }
+
+        .group-ops {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .btn-op {
+            flex: 1;
+            text-align: center;
+            font-size: 12px;
+            padding: 6px 4px;
+            border-radius: 6px;
+            background: #f5f5f5;
+            text-decoration: none;
+            color: #555;
+            cursor: pointer;
+        }
+
+        .btn-op:hover {
+            background: #e5e5e5;
+        }
+
+        .badge-notify {
+            display: inline-block;
+            min-width: 18px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: #ff4757;
+            color: #fff;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        /* メインチャット */
+        .main-chat {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            background: #f0f2f5;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .chat-display {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
         }
 
         .msg-row {
+            width: 100%;
             display: flex;
-            align-items: flex-start;
             margin-bottom: 12px;
-            position: relative;
         }
 
-        /* 自分のメッセージ（右側） */
+        .message {
+            display: inline-block;
+            max-width: 75%;
+            padding: 8px 10px;
+            border-radius: 10px;
+            word-break: break-word;
+        }
+
         .my-msg {
             margin-left: auto;
-            background: #d1ffd1;
-            padding: 10px 14px;
-            border-radius: 10px;
-            max-width: 70%;
+            background: #d9f2ff;
         }
 
-        /* 他ユーザー（左側） */
         .other-msg {
-            background: #ffffff;
-            padding: 10px 14px;
-            border-radius: 10px;
-            max-width: 70%;
+            margin-right: auto;
+            background: #fff;
         }
 
-        /* ClassBot（左側・青系） */
         .bot-msg {
+            margin-right: auto;
             background: #e8f4ff;
             border-left: 4px solid #4aa3ff;
-            padding: 10px 14px;
-            border-radius: 10px;
-            max-width: 70%;
         }
 
         .user-name {
-            font-size: 0.85em;
             font-weight: bold;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
         }
 
         .msg-time {
@@ -72,138 +165,250 @@
         .delete-btn {
             background: transparent;
             border: none;
-            color: #888;
-            cursor: pointer;
+            color: #999;
             font-size: 14px;
+            cursor: pointer;
             margin-left: 6px;
+            opacity: 0.6;
         }
 
         .delete-btn:hover {
-            color: #ff4444;
+            color: #ff4d4d;
+            opacity: 1;
         }
 
-        .send-box {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-        }
-
-        textarea {
-            width: 100%;
-            height: 60px;
+        /* 入力欄 */
+        .chat-input-area {
             padding: 10px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-row input[type="text"] {
+            flex: 1;
+            padding: 8px 10px;
             border-radius: 6px;
             border: 1px solid #ccc;
-            resize: none;
+            font-size: 14px;
         }
 
-        button {
-            padding: 10px 16px;
-            border: none;
-            background: #4aa3ff;
-            color: white;
+        .input-row .send {
+            padding: 8px 14px;
             border-radius: 6px;
+            border: none;
+            background: #007bff;
+            color: #fff;
             cursor: pointer;
         }
 
-        button:hover {
-            background: #1f8fff;
+        /* スマホ対応 */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: calc(var(--vh, 1vh) * 100);
+                transform: translateX(-100%);
+                box-shadow: 4px 0 12px rgba(0,0,0,0.15);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .menu-btn {
+                display: block;
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                z-index: 1100;
+                background: #007bff;
+                color: #fff;
+                border-radius: 4px;
+                padding: 6px 10px;
+                border: none;
+                cursor: pointer;
+            }
+
+            .overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.3);
+                z-index: 900;
+            }
+
+            .overlay.open {
+                display: block;
+            }
         }
     </style>
 </head>
 
-<body>
-<div class="chat-container">
+<body class="chat-page">
 
-    <h2>
-        {% if partner %}
-            {{ partner }} さんとのチャット
-        {% elif group %}
-            グループ: {{ group }}
-        {% else %}
-            全体チャット
-        {% endif %}
-    </h2>
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
+<div class="overlay" onclick="toggleMenu()"></div>
 
-    <hr>
+<div class="layout">
 
-    <!-- ここが統合タイムライン -->
-    {% for msg in all_msgs %}
-        <div class="msg-row">
+    <!-- サイドバー -->
+    <div class="sidebar">
 
-            {% if msg.type == "bot" %}
-                <div class="message bot-msg">
-                    <div class="user-name">
-                        🤖 ClassBot
-                        <span class="msg-time">{{ msg.created_at }}</span>
-                    </div>
-                    <div class="msg-text">{{ msg.message }}</div>
-                </div>
+        <a class="chat-link" href="/">🏠 ホームへ戻る</a>
 
-            {% elif msg.username == username %}
-                <div class="message my-msg">
-                    <div class="user-name">
-                        {{ msg.username }}
-                        <span class="msg-time">{{ msg.created_at }}</span>
-                    </div>
-                    <div class="msg-text">{{ msg.message }}</div>
-
-                    {% if msg.file_path %}
-                        <div style="margin-top:5px;">
-                            <a href="{{ msg.file_path }}" target="_blank"
-                               style="font-size:0.8em; color:#007bff; text-decoration:none;">
-                                📎 ファイルを表示
-                            </a>
-                        </div>
-                    {% endif %}
-                </div>
-
-                <button class="delete-btn" data-id="{{ msg.id }}">✕</button>
-
-            {% else %}
-                <div class="message other-msg">
-                    <div class="user-name">
-                        {{ msg.username }}
-                        <span class="msg-time">{{ msg.created_at }}</span>
-                    </div>
-                    <div class="msg-text">{{ msg.message }}</div>
-
-                    {% if msg.file_path %}
-                        <div style="margin-top:5px;">
-                            <a href="{{ msg.file_path }}" target="_blank"
-                               style="font-size:0.8em; color:#007bff; text-decoration:none;">
-                                📎 ファイルを表示
-                            </a>
-                        </div>
-                    {% endif %}
-                </div>
+        <h3>🌐 全体チャット</h3>
+        <a class="chat-link" href="/chat">
+            💬 全体チャット
+            {% if unread_all > 0 %}
+            <span class="badge-notify">{{ unread_all }}</span>
             {% endif %}
+        </a>
+
+        <h3>👥 グループ</h3>
+        <div class="group-ops">
+            <div class="btn-op" onclick="createGroup()">➕ 作成</div>
+            <div class="btn-op" onclick="joinGroup()">🔍 参加</div>
+        </div>
+
+        {% for g in groups %}
+        <a class="chat-link" href="/chat?group={{ g }}">
+            📁 {{ g }}
+            {% if unread_group[g] > 0 %}
+            <span class="badge-notify">{{ unread_group[g] }}</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+
+        <h3>📨 DM</h3>
+        {% for u in users %}
+            {% if u.username != username %}
+            <a class="chat-link" href="/chat?user={{ u.username }}">
+                {% if u.role == 'admin' %}🛡️{% else %}👤{% endif %}
+                {{ u.username }}
+                {% if unread_dm[u.username] > 0 %}
+                <span class="badge-notify">{{ unread_dm[u.username] }}</span>
+                {% endif %}
+            </a>
+            {% endif %}
+        {% endfor %}
+
+    </div>
+
+    <!-- メインチャット -->
+    <div class="main-chat">
+
+        <div class="chat-header">
+            {% if group %}
+                グループ: {{ group }}
+            {% elif partner %}
+                DM: {{ partner }}
+            {% else %}
+                全体チャット
+            {% endif %}
+        </div>
+
+        <div class="chat-display">
+
+            <!-- ★★★ 統合タイムライン（all_msgs） ★★★ -->
+            {% for msg in all_msgs %}
+            <div class="msg-row">
+
+                {% if msg.type == "bot" %}
+                    <div class="message bot-msg">
+                        <div class="user-name">
+                            🤖 ClassBot
+                            <span class="msg-time">{{ msg.created_at }}</span>
+                        </div>
+                        <div class="msg-text">{{ msg.message }}</div>
+                    </div>
+
+                {% elif msg.username == username %}
+                    <div class="message my-msg">
+                        <div class="user-name">
+                            {{ msg.username }}
+                            <span class="msg-time">{{ msg.created_at }}</span>
+                        </div>
+                        <div class="msg-text">{{ msg.message }}</div>
+
+                        {% if msg.file_path %}
+                        <div style="margin-top:5px;">
+                            <a href="{{ msg.file_path }}" target="_blank"
+                               style="font-size:0.8em; color:#007bff; text-decoration:none;">
+                                📎 ファイルを表示
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <button class="delete-btn" data-id="{{ msg.id }}">✕</button>
+
+                {% else %}
+                    <div class="message other-msg">
+                        <div class="user-name">
+                            {{ msg.username }}
+                            <span class="msg-time">{{ msg.created_at }}</span>
+                        </div>
+                        <div class="msg-text">{{ msg.message }}</div>
+
+                        {% if msg.file_path %}
+                        <div style="margin-top:5px;">
+                            <a href="{{ msg.file_path }}" target="_blank"
+                               style="font-size:0.8em; color:#007bff; text-decoration:none;">
+                                📎 ファイルを表示
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+            </div>
+            {% endfor %}
 
         </div>
-    {% endfor %}
 
-    <hr>
+        <div class="chat-input-area">
+            <form action="{{ url_for('chat', user=partner, group=group) }}"
+                  method="post"
+                  enctype="multipart/form-data">
 
-    <!-- 送信フォーム -->
-    <form method="POST" enctype="multipart/form-data" class="send-box">
-        <textarea name="message" placeholder="メッセージを入力"></textarea>
-        <input type="file" name="file">
-        <button type="submit">送信</button>
-    </form>
+                <div class="input-row">
+                    <input type="text" name="message" placeholder="メッセージを入力">
+                    <input type="file" name="file">
+                    <button class="send" type="submit">送信</button>
+                </div>
 
+            </form>
+        </div>
+
+    </div>
 </div>
 
 <script>
-    // 削除ボタン処理
-    document.querySelectorAll(".delete-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const id = btn.dataset.id;
-            if (confirm("削除しますか？")) {
-                fetch(`/delete_message/${id}`, { method: "POST" })
-                    .then(() => location.reload());
-            }
-        });
+function toggleMenu() {
+    document.querySelector(".sidebar").classList.toggle("open");
+    document.querySelector(".overlay").classList.toggle("open");
+}
+
+document.querySelectorAll(".delete-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const id = btn.dataset.id;
+        if (confirm("削除しますか？")) {
+            fetch(`/delete_message/${id}`, { method: "POST" })
+                .then(() => location.reload());
+        }
     });
+});
+
+// スクロール最下部へ
+const chatDisplay = document.querySelector(".chat-display");
+chatDisplay.scrollTop = chatDisplay.scrollHeight;
 </script>
 
 </body>
