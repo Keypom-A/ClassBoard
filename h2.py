@@ -554,6 +554,30 @@ def chat():
                     "created_at": m["created_at"],
                 })
 
+          all_msgs=[]
+
+          for m in messages:
+            all_msgs.append({
+                "id": m["id"],
+                "username": m["username"],
+                "message": m["message"],
+                "created_at": m["created_at"],
+                "file_path": m["file_path"],
+                "type": "user"
+              })
+
+             for b in bot_messages:
+                all_msgs.append({
+                    "id": b["id"],
+                    "username": "ClassBot",
+                    "message": b["message"],
+                    "created_at": b["created_at"],
+                    "file_path": None,
+                    "type": "bot"
+                })
+
+            all_msgs = sorted(all_msgs, key=lambda x: x["created_at"])
+
             # ----------------------------
             # 8. 未読数
             # ----------------------------
