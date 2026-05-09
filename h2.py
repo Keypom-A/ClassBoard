@@ -430,15 +430,15 @@ def chat():
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
 
-            # ============================
+            # ----------------------------
             # 1. ユーザー一覧（DM用）
-            # ============================
+            # ----------------------------
             cur.execute("SELECT username, role FROM users")
             users = cur.fetchall()
 
-            # ============================
+            # ----------------------------
             # 2. グループ一覧
-            # ============================
+            # ----------------------------
             cur.execute("""
                 SELECT group_name
                 FROM user_groups
@@ -446,9 +446,9 @@ def chat():
             """, (me,))
             groups = [r[0] for r in cur.fetchall()]
 
-            # ============================
+            # ----------------------------
             # 3. POST（送信処理）
-            # ============================
+            # ----------------------------
             if request.method == 'POST':
                 msg_content = request.form.get('message', '')
                 file = request.files.get('file')
@@ -470,7 +470,7 @@ def chat():
                 else:
                     receiver = "all"
 
-                now_str = get_now_jst().strftime('%m/%d %H:%M')
+                now_str = get_now_jst().strftime('%Y-%m-%d %H:%M')
 
                 if msg_content or file_url:
                     cur.execute("""
@@ -481,13 +481,14 @@ def chat():
 
                 return redirect(url_for('chat', user=partner, group=group))
 
-            # ============================
+            # ----------------------------
             # 4. GET（表示処理）
-            # ============================
+            # ----------------------------
             if group:
                 target = f"grp_{group}"
                 cur.execute("""
-                    SELECT * FROM chat_messages
+                    SELECT *
+                    FROM chat_messages
                     WHERE receiver = %s
                     ORDER BY id ASC
                 """, (target,))
@@ -509,9 +510,19 @@ def chat():
 
             raw_messages = cur.fetchall()
 
-            # ============================
-            # 5. 既読処理
-            # ============================
+            # ----------------------------
+            # 5. Botメッセージ読み込み
+            # ----------------------------
+            cur.execute("""
+                SELECT *
+                FROM bot_messages
+                ORDER BY id ASC
+            """)
+            bot_messages = cur.fetchall()
+
+            # ----------------------------
+            # 6. 既読処理
+            # ----------------------------
             if partner:
                 cur.execute("""
                     UPDATE chat_messages
@@ -536,9 +547,9 @@ def chat():
                 """, (me,))
                 conn.commit()
 
-            # ============================
-            # 6. メッセージ整形
-            # ============================
+            # ----------------------------
+            # 7. メッセージ整形
+            # ----------------------------
             messages = []
             for m in raw_messages:
                 messages.append({
@@ -549,9 +560,9 @@ def chat():
                     "created_at": m["created_at"],
                 })
 
-            # ============================
-            # 7. 未読数（chat.html が必要とする形式）
-            # ============================
+            # ----------------------------
+            # 8. 未読数
+            # ----------------------------
             # 全体
             cur.execute("""
                 SELECT COUNT(*)
@@ -589,12 +600,13 @@ def chat():
                 """, (uname, me))
                 unread_dm[uname] = cur.fetchone()[0]
 
-    # ============================
-    # 8. テンプレートへ返す
-    # ============================
+    # ----------------------------
+    # 9. テンプレートへ返す
+    # ----------------------------
     return render_template(
         "chat.html",
         messages=messages,
+        bot_messages=bot_messages,
         partner=partner,
         group=group,
         users=users,
@@ -610,17 +622,14 @@ def morning_schedule():
     from datetime import datetime
     import psycopg2.extras
 
-    # 今日の日付と曜日（JST）
     now = get_now_jst()
     today_str = now.strftime("%Y-%m-%d")
-    weekday = now.weekday()  # 0=月, 1=火...
+    weekday = now.weekday()
 
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
 
-            # ============================
-            # 1. 特別時間割（is_changed=1）を探す
-            # ============================
+            # 特別時間割
             cur.execute("""
                 SELECT priod, subject
                 FROM timetable
@@ -632,9 +641,7 @@ def morning_schedule():
             if special:
                 rows = special
             else:
-                # ============================
-                # 2. 通常の曜日時間割（is_changed=0）
-                # ============================
+                # 通常時間割
                 cur.execute("""
                     SELECT priod, subject
                     FROM timetable
@@ -643,36 +650,29 @@ def morning_schedule():
                 """, (weekday,))
                 rows = cur.fetchall()
 
-            # ============================
-            # 3. 時間割メッセージを組み立てる（Bタイプ）
-            # ============================
+            # メッセージ組み立て
             message_lines = [
                 "🌅 おはよう！",
                 "今日の時間割はこれだよ👇"
             ]
 
-            # 1〜6限を埋める
             for r in rows:
-                p = r["priod"]
-                sub = r["subject"]
-                message_lines.append(f"{p}限：{sub}")
+                message_lines.append(f"{r['priod']}限：{r['subject']}")
 
             message_lines.append("今日もがんばろう！")
 
             final_message = "\n".join(message_lines)
-
-            # ============================
-            # 4. ClassBot としてチャットに投稿
-            # ============================
             created_at = now.strftime('%Y-%m-%d %H:%M')
 
+            # Bot専用テーブルに保存
             cur.execute("""
-                INSERT INTO chat_messages (username, message, receiver, file_path, created_at)
-                VALUES (%s, %s, %s, %s, %s)
-            """, ("ClassBot", final_message, "all", None, created_at))
+                INSERT INTO bot_messages (message, created_at)
+                VALUES (%s, %s)
+            """, (final_message, created_at))
             conn.commit()
 
     return "OK"
+
 
 @app.route('/timetable', methods=['GET', 'POST'])
 def timetable():
