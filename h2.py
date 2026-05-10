@@ -9,6 +9,10 @@ import json
 import urllib.request
 from flask import jsonify
 import requests
+import time
+
+weather_cache = None
+weather_cache_time = 0
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -66,11 +70,6 @@ init_db()
 def get_now_jst():
     return datetime.utcnow() + timedelta(hours=9)
 
-import time
-
-weather_cache = None
-weather_cache_time = 0
-
 @app.route("/api/weather")
 def get_weather_api():
     global weather_cache, weather_cache_time
@@ -80,13 +79,7 @@ def get_weather_api():
         return jsonify(weather_cache)
 
     try:
-        url = (
-            "https://api.open-meteo.com/v1/forecast"
-            "?latitude=37.4&longitude=140.38"
-            "&current=temperature_2m,wind_speed_10m,weathercode"
-            "&daily=weather_code,temperature_2m_max,temperature_2m_min"
-            "&forecast_days=3&timezone=Asia/Tokyo"
-        )
+        url = ("https://api.open-meteo.com/v1/forecast?latitude=37.4&longitude=140.38&current=temperature_2m,wind_speed_10m,weathercode&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=Asia/Tokyo")
 
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=5) as response:
