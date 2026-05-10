@@ -338,10 +338,16 @@
         </div>
         <div id="member-list" class="member-list" style="display: none;">
             {% for m in members %}
-            <div class="member-item">{{ m }}</div>
+            <div class="member-item" onclick="location.href='/chat?user={{ m.name }}'">
+                {% if m.online == 1 %}
+                    <span class="online-dot"></span>
+                {% else %}
+                    <span class="offline-dot"></span>
+                {% endif %}
+                {{ m.name }}
+            </div>
             {% endfor %}
         </div>
-        {% endif %}
 
         <div class="chat-display">
 
@@ -441,5 +447,11 @@ chatDisplay.scrollTop = chatDisplay.scrollHeight;
 
 </script>
 <script src="{{ url_for('static', filename='chat.js') }}"></script>
+<script>
+function toggleMembers() {
+    const box = document.getElementById("member-list");
+    box.style.display = (box.style.display === "none") ? "block" : "none";
+}
+</script>
 </body>
 </html>
