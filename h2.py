@@ -269,6 +269,20 @@ def chat():
             # Botメッセージ
             cur.execute("SELECT * FROM bot_messages ORDER BY id ASC")
             bot_messages = cur.fetchall()
+          # ----------------------------
+          # ★ グループメンバー一覧 + オンライン状態
+          # ----------------------------
+          group_members = []
+          if group:
+              cur.execute("""
+              SELECT username, online
+              FROM users
+              WHERE username IN (
+              SELECT username FROM user_groups WHERE group_name = %s
+              )
+              ORDER BY username ASC
+              """, (group,))
+            group_members = [{"name": r[0], "online": r[1]} for r in cur.fetchall()]
 
             # 6. 既読処理
             if partner:
@@ -376,6 +390,7 @@ def chat():
         group=group,
         users=users,
         groups=groups,
+        group_members=group_members,
         username=me,
         unread_all=unread_all,
         unread_group=unread_group,
