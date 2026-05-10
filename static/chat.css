@@ -228,13 +228,23 @@
 }
 
 .member-toggle {
-    padding: 10px;
+    padding: 12px;
+    background: #ffffff;
+    border: 2px solid #4a90e2;
+    border-radius: 10px;
+    color: #4a90e2;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.member-toggle:hover {
     background: #4a90e2;
     color: white;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-bottom: 8px;
-    text-align: center;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
 }
 
 .member-list {
