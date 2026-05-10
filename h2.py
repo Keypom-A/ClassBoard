@@ -66,31 +66,37 @@ init_db()
 def get_now_jst():
     return datetime.utcnow() + timedelta(hours=9)
 
-import json
-import urllib.request
-from flask import jsonify
+import time
 
+weather_cache = None
+weather_cache_time = 0
 
 @app.route("/api/weather")
 def get_weather_api():
     global weather_cache, weather_cache_time
+
+    # 60秒以内ならキャッシュを返す
     if time.time() - weather_cache_time < 60 and weather_cache is not None:
         return jsonify(weather_cache)
-      
+
     try:
-        url = ("https://api.open-meteo.com/v1/forecast?latitude=37.4&longitude=140.38&current=temperature_2m,wind_speed_10m,weathercode&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=Asia/Tokyo")
+        url = (
+            "https://api.open-meteo.com/v1/forecast"
+            "?latitude=37.4&longitude=140.38"
+            "&current=temperature_2m,wind_speed_10m,weathercode"
+            "&daily=weather_code,temperature_2m_max,temperature_2m_min"
+            "&forecast_days=3&timezone=Asia/Tokyo"
+        )
 
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode("utf-8"))
 
-        # 現在の天気
         current = {
             "temp": round(data["current"]["temperature_2m"]),
             "code": data["current"]["weathercode"]
         }
 
-        # 3日分の予報
         labels = ["今日", "明日", "明後日"]
         forecast = []
 
@@ -99,17 +105,19 @@ def get_weather_api():
                 "label": labels[i],
                 "max": round(data["daily"]["temperature_2m_max"][i]),
                 "min": round(data["daily"]["temperature_2m_min"][i]),
-                "code": data["daily"]["weather_code"][i]  # ← 修正ポイント
+                "code": data["daily"]["weather_code"][i]
             })
 
-        return jsonify({
-            "current": current,
-            "forecast": forecast
-        })
+        # キャッシュ更新
+        weather_cache = {"current": current, "forecast": forecast}
+        weather_cache_time = time.time()
+
+        return jsonify(weather_cache)
 
     except Exception as e:
-        print(f"Weather Error: {e}")
+        print("Weather Error:", e)
         return jsonify({"error": "取得失敗"}), 500
+
 
 
 @app.route("/")
