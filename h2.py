@@ -84,7 +84,7 @@ def api_create_group():
 
     with get_db() as conn:
         with conn.cursor() as cur:
-            # グループ作成（name カラムでOK）
+            # グループ作成
             cur.execute("""
                 INSERT INTO groups (name)
                 VALUES (%s)
@@ -147,7 +147,6 @@ def api_join_group():
             conn.commit()
 
     return jsonify({"success": True})
-
 
 
 @app.route("/api/unread_count")
