@@ -208,7 +208,7 @@ def unread_count():
                     WHERE receiver = %s
                       AND is_read = FALSE
                       AND username != %s
-                """, (f"grp_{g}", me))
+                """, (g, me)
                 unread[g] = cur.fetchone()[0]
 
     return jsonify({"unread": unread})
@@ -466,7 +466,7 @@ def chat():
 
                 # 送信先判定
                 if group is not None:
-                    receiver = f"grp_{group}"
+                    receiver = group
                 elif partner:
                     receiver = partner
                 else:
