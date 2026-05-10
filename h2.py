@@ -390,7 +390,6 @@ def chat():
         group=group,
         users=users,
         groups=groups,
-        group_members=group_members,
         username=me,
         unread_all=unread_all,
         unread_group=unread_group,
