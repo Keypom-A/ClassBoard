@@ -797,12 +797,27 @@ def delete_task(task_id):
 
 @app.route('/users')
 def user_list():
-    if session.get('role') != 'admin': return "権限なし"
+    if session.get('role') != 'admin':
+        return "権限なし"
+
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute('SELECT * FROM users ORDER BY username ASC')
+            cur.execute("""
+                SELECT 
+                    username,
+                    role,
+                    last_active,
+                    CASE 
+                        WHEN last_active > NOW() - INTERVAL '20 seconds'
+                        THEN 1 ELSE 0 
+                    END AS online
+                FROM users
+                ORDER BY username ASC
+            """)
             users = cur.fetchall()
+
     return render_template('users.html', users=users, username=session['username'])
+
 
 @app.route('/update_role/<target_user>', methods=['POST'])
 def update_role(target_user):
