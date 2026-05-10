@@ -70,243 +70,7 @@ import json
 import urllib.request
 from flask import jsonify
 
-@app.route("/api/create_group", methods=["POST"])
-def api_create_group():
-    if "username" not in session:
-        return jsonify({"success": False}), 403
 
-    me = session["username"]
-    data = request.get_json()
-    group = data.get("group")
-
-    if not group:
-        return jsonify({"success": False}), 400
-
-    with get_db() as conn:
-        with conn.cursor() as cur:
-            # グループ作成
-            cur.execute("""
-                INSERT INTO groups (name)
-                VALUES (%s)
-                ON CONFLICT (name) DO NOTHING
-            """, (group,))
-
-            # 作成者を自動参加
-            cur.execute("""
-                INSERT INTO user_groups (username, group_name)
-                VALUES (%s, %s)
-                ON CONFLICT (username, group_name) DO NOTHING
-            """, (me, group))
-
-            conn.commit()
-
-    return jsonify({"success": True})
-
-@app.route("/api/leave_group", methods=["POST"])
-def api_leave_group():
-    if "username" not in session:
-        return jsonify({"success": False}), 403
-
-    me = session["username"]
-    data = request.get_json()
-    group = data.get("group")
-
-    if not group:
-        return jsonify({"success": False}), 400
-
-    with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                DELETE FROM user_groups
-                WHERE username = %s AND group_name = %s
-            """, (me, group))
-            conn.commit()
-
-    return jsonify({"success": True})
-
-
-@app.route("/api/join_group", methods=["POST"])
-def api_join_group():
-    if "username" not in session:
-        return jsonify({"success": False}), 403
-
-    me = session["username"]
-    data = request.get_json()
-    group = data.get("group")
-
-    if not group:
-        return jsonify({"success": False}), 400
-
-    with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO user_groups (username, group_name)
-                VALUES (%s, %s)
-                ON CONFLICT (username, group_name) DO NOTHING
-            """, (me, group))
-            conn.commit()
-
-    return jsonify({"success": True})
-
-
-@app.route("/api/unread_count")
-def unread_count():
-    if "username" not in session:
-        return jsonify({"error": "not logged in"}), 403
-
-    me = session["username"]
-
-    unread = {}
-
-    with get_db() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-
-            # ============================
-            # ★ 全体チャット
-            # ============================
-            cur.execute("""
-                SELECT COUNT(*)
-                FROM chat_messages
-                WHERE receiver = 'all'
-                  AND is_read = FALSE
-                  AND username != %s
-            """, (me,))
-            unread["all"] = cur.fetchone()[0]
-
-            # ============================
-            # ★ DM（相手ごと）
-            # ============================
-            cur.execute("""
-                SELECT username FROM users WHERE username != %s
-            """, (me,))
-            dm_users = [r["username"] for r in cur.fetchall()]
-
-            for u in dm_users:
-                cur.execute("""
-                    SELECT COUNT(*)
-                    FROM chat_messages
-                    WHERE receiver = %s
-                      AND is_read = FALSE
-                      AND username != %s
-                """, (u, me))
-                unread[u] = cur.fetchone()[0]
-
-            # ============================
-            # ★ グループ（grp_◯◯）
-            # ============================
-            cur.execute("""
-                SELECT group_name
-                FROM user_groups
-                WHERE username = %s
-            """,(me,))
-            groups = [r[0] for r in cur.fetchall()]
-
-            for g in groups:
-                cur.execute("""
-                    SELECT COUNT(*)
-                    FROM chat_messages
-                    WHERE receiver = %s
-                      AND is_read = FALSE
-                      AND username != %s
-                """, (g, me)
-                unread[g] = cur.fetchone()[0]
-
-    return jsonify({"unread": unread})
-
-
-@app.route("/api/delete_message", methods=["POST"])
-def api_delete_message():
-    if "username" not in session:
-        return jsonify({"success": False, "error": "not logged in"}), 403
-
-    me = session["username"]
-    data = request.get_json()
-    msg_id = data.get("id")
-
-    if not msg_id:
-        return jsonify({"success": False, "error": "no id"}), 400
-
-    with get_db() as conn:
-        with conn.cursor() as cur:
-
-            # 自分のメッセージか確認
-            cur.execute("""
-                SELECT username FROM chat_messages
-                WHERE id = %s
-            """, (msg_id,))
-            row = cur.fetchone()
-
-            if not row:
-                return jsonify({"success": False, "error": "not found"}), 404
-
-            if row[0] != me:
-                return jsonify({"success": False, "error": "forbidden"}), 403
-
-            # 削除
-            cur.execute("DELETE FROM chat_messages WHERE id = %s", (msg_id,))
-            conn.commit()
-
-    return jsonify({"success": True})
-
-
-@app.route("/api/mark_read", methods=["POST"])
-def mark_read():
-    if "username" not in session:
-        return jsonify({"error": "not logged in"}), 403
-
-    me = session["username"]
-    data = request.get_json()
-
-    partner = data.get("partner")   # DM
-    group = data.get("group")       # グループ
-    room = data.get("room")         # 全体チャット（"all"）
-
-    with get_db() as conn:
-        with conn.cursor() as cur:
-
-            # ============================
-            # ★ DM の既読処理
-            # ============================
-            if partner:
-                cur.execute("""
-                    UPDATE chat_messages
-                    SET is_read = TRUE
-                    WHERE receiver = %s
-                      AND username != %s
-                      AND is_read = FALSE
-                """, (partner, me))
-                conn.commit()
-                return jsonify({"status": "ok", "type": "dm"})
-
-            # ============================
-            # ★ グループの既読処理
-            # ============================
-            if group:
-                cur.execute("""
-                    UPDATE chat_messages
-                    SET is_read = TRUE
-                    WHERE receiver = %s
-                      AND username != %s
-                      AND is_read = FALSE
-                """, (f"grp_{group}", me))
-                conn.commit()
-                return jsonify({"status": "ok", "type": "group"})
-
-            # ============================
-            # ★ 全体チャットの既読処理
-            # ============================
-            if room == "all":
-                cur.execute("""
-                    UPDATE chat_messages
-                    SET is_read = TRUE
-                    WHERE receiver = 'all'
-                      AND username != %s
-                      AND is_read = FALSE
-                """, (me,))
-                conn.commit()
-                return jsonify({"status": "ok", "type": "all"})
-
-    return jsonify({"error": "invalid request"}), 400
 
 @app.route("/api/weather")
 def get_weather_api():
@@ -432,15 +196,11 @@ def chat():
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
 
-            # ----------------------------
             # 1. ユーザー一覧（DM用）
-            # ----------------------------
             cur.execute("SELECT username, role FROM users")
             users = cur.fetchall()
 
-            # ----------------------------
-            # 2. グループ一覧
-            # ----------------------------
+            # 2. グループ一覧（参加しているグループのみ）
             cur.execute("""
                 SELECT group_name
                 FROM user_groups
@@ -448,15 +208,12 @@ def chat():
             """, (me,))
             groups = [r[0] for r in cur.fetchall()]
 
-            # ----------------------------
             # 3. POST（送信処理）
-            # ----------------------------
             if request.method == 'POST':
                 msg_content = request.form.get('message', '')
                 file = request.files.get('file')
                 file_url = None
 
-                # 添付ファイル（Cloudinary）
                 if file and file.filename != '':
                     try:
                         res = cloudinary.uploader.upload(file, resource_type="auto")
@@ -466,11 +223,11 @@ def chat():
 
                 # 送信先判定
                 if group is not None:
-                    receiver = group
+                    receiver = group          # グループ名そのもの
                 elif partner:
-                    receiver = partner
+                    receiver = partner        # DM
                 else:
-                    receiver = "all"
+                    receiver = "all"          # 全体
 
                 now_str = get_now_jst().strftime('%Y-%m-%d %H:%M')
 
@@ -483,17 +240,14 @@ def chat():
 
                 return redirect(url_for('chat', user=partner, group=group))
 
-            # ----------------------------
             # 4. GET（表示処理）
-            # ----------------------------
             if group:
-                target = f"grp_{group}"
                 cur.execute("""
                     SELECT *
                     FROM chat_messages
                     WHERE receiver = %s
                     ORDER BY id ASC
-                """, (target,))
+                """, (group,))
             elif partner:
                 cur.execute("""
                     SELECT *
@@ -512,13 +266,11 @@ def chat():
 
             raw_messages = cur.fetchall()
 
-            # Botメッセージ読み込み
+            # Botメッセージ
             cur.execute("SELECT * FROM bot_messages ORDER BY id ASC")
             bot_messages = cur.fetchall()
 
-            # ----------------------------
             # 6. 既読処理
-            # ----------------------------
             if partner:
                 cur.execute("""
                     UPDATE chat_messages
@@ -532,7 +284,7 @@ def chat():
                     UPDATE chat_messages
                     SET is_read = TRUE
                     WHERE receiver = %s AND username != %s
-                """, (f"grp_{group}", me))
+                """, (group, me))   # grp_ なし
                 conn.commit()
 
             if not partner and not group:
@@ -543,9 +295,7 @@ def chat():
                 """, (me,))
                 conn.commit()
 
-            # ----------------------------
             # 7. メッセージ整形
-            # ----------------------------
             messages = []
             for m in raw_messages:
                 messages.append({
@@ -556,12 +306,8 @@ def chat():
                     "created_at": m["created_at"],
                 })
 
-            # ----------------------------
             # 7.5 ユーザー + Bot 統合タイムライン
-            # ----------------------------
             all_msgs = []
-
-            # ユーザーのメッセージ
             for m in messages:
                 all_msgs.append({
                     "id": m["id"],
@@ -572,7 +318,6 @@ def chat():
                     "type": "user"
                 })
 
-            # Bot のメッセージ（tuple 対応）
             if not partner and not group:
                 for b in bot_messages:
                     all_msgs.append({
@@ -584,12 +329,9 @@ def chat():
                         "type": "bot"
                     })
 
-            # 時刻順に並べる
             all_msgs = sorted(all_msgs, key=lambda x: x["created_at"])
 
-            # ----------------------------
             # 8. 未読数
-            # ----------------------------
             # 全体
             cur.execute("""
                 SELECT COUNT(*)
@@ -609,7 +351,7 @@ def chat():
                     WHERE receiver = %s
                       AND is_read = FALSE
                       AND username != %s
-                """, (f"grp_{g}", me))
+                """, (g, me))   # grp_ なし
                 unread_group[g] = cur.fetchone()[0]
 
             # DM
@@ -627,9 +369,6 @@ def chat():
                 """, (uname, me))
                 unread_dm[uname] = cur.fetchone()[0]
 
-    # ----------------------------
-    # 9. テンプレートへ返す
-    # ----------------------------
     return render_template(
         "chat.html",
         all_msgs=all_msgs,
@@ -642,6 +381,230 @@ def chat():
         unread_group=unread_group,
         unread_dm=unread_dm
     )
+
+
+@app.route("/api/create_group", methods=["POST"])
+def api_create_group():
+    if "username" not in session:
+        return jsonify({"success": False}), 403
+
+    me = session["username"]
+    data = request.get_json()
+    group = data.get("group")
+
+    if not group:
+        return jsonify({"success": False}), 400
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            # グループ作成
+            cur.execute("""
+                INSERT INTO groups (name)
+                VALUES (%s)
+                ON CONFLICT (name) DO NOTHING
+            """, (group,))
+
+            # 作成者を自動参加
+            cur.execute("""
+                INSERT INTO user_groups (username, group_name)
+                VALUES (%s, %s)
+                ON CONFLICT (username, group_name) DO NOTHING
+            """, (me, group))
+
+            conn.commit()
+
+    return jsonify({"success": True})
+
+
+@app.route("/api/leave_group", methods=["POST"])
+def api_leave_group():
+    if "username" not in session:
+        return jsonify({"success": False}), 403
+
+    me = session["username"]
+    data = request.get_json()
+    group = data.get("group")
+
+    if not group:
+        return jsonify({"success": False}), 400
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                DELETE FROM user_groups
+                WHERE username = %s AND group_name = %s
+            """, (me, group))
+            conn.commit()
+
+    return jsonify({"success": True})
+
+
+@app.route("/api/join_group", methods=["POST"])
+def api_join_group():
+    if "username" not in session:
+        return jsonify({"success": False}), 403
+
+    me = session["username"]
+    data = request.get_json()
+    group = data.get("group")
+
+    if not group:
+        return jsonify({"success": False}), 400
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO user_groups (username, group_name)
+                VALUES (%s, %s)
+                ON CONFLICT (username, group_name) DO NOTHING
+            """, (me, group))
+            conn.commit()
+
+    return jsonify({"success": True})
+
+
+@app.route("/api/unread_count")
+def unread_count():
+    if "username" not in session:
+        return jsonify({"error": "not logged in"}), 403
+
+    me = session["username"]
+    unread = {}
+
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+
+            # 全体
+            cur.execute("""
+                SELECT COUNT(*)
+                FROM chat_messages
+                WHERE receiver = 'all'
+                  AND is_read = FALSE
+                  AND username != %s
+            """, (me,))
+            unread["all"] = cur.fetchone()[0]
+
+            # DM
+            cur.execute("""
+                SELECT username FROM users WHERE username != %s
+            """, (me,))
+            dm_users = [r["username"] for r in cur.fetchall()]
+
+            for u in dm_users:
+                cur.execute("""
+                    SELECT COUNT(*)
+                    FROM chat_messages
+                    WHERE receiver = %s
+                      AND is_read = FALSE
+                      AND username != %s
+                """, (u, me))
+                unread[u] = cur.fetchone()[0]
+
+            # グループ
+            cur.execute("""
+                SELECT group_name
+                FROM user_groups
+                WHERE username = %s
+            """, (me,))
+            groups = [r[0] for r in cur.fetchall()]
+
+            for g in groups:
+                cur.execute("""
+                    SELECT COUNT(*)
+                    FROM chat_messages
+                    WHERE receiver = %s
+                      AND is_read = FALSE
+                      AND username != %s
+                """, (g, me))
+                unread[g] = cur.fetchone()[0]
+
+    return jsonify({"unread": unread})
+
+
+@app.route("/api/delete_message", methods=["POST"])
+def api_delete_message():
+    if "username" not in session:
+        return jsonify({"success": False, "error": "not logged in"}), 403
+
+    me = session["username"]
+    data = request.get_json()
+    msg_id = data.get("id")
+
+    if not msg_id:
+        return jsonify({"success": False, "error": "no id"}), 400
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT username FROM chat_messages
+                WHERE id = %s
+            """, (msg_id,))
+            row = cur.fetchone()
+
+            if not row:
+                return jsonify({"success": False, "error": "not found"}), 404
+
+            if row[0] != me:
+                return jsonify({"success": False, "error": "forbidden"}), 403
+
+            cur.execute("DELETE FROM chat_messages WHERE id = %s", (msg_id,))
+            conn.commit()
+
+    return jsonify({"success": True})
+
+
+@app.route("/api/mark_read", methods=["POST"])
+def mark_read():
+    if "username" not in session:
+        return jsonify({"error": "not logged in"}), 403
+
+    me = session["username"]
+    data = request.get_json()
+
+    partner = data.get("partner")
+    group = data.get("group")
+    room = data.get("room")
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+
+            # DM
+            if partner:
+                cur.execute("""
+                    UPDATE chat_messages
+                    SET is_read = TRUE
+                    WHERE receiver = %s
+                      AND username != %s
+                      AND is_read = FALSE
+                """, (partner, me))
+                conn.commit()
+                return jsonify({"status": "ok", "type": "dm"})
+
+            # グループ
+            if group:
+                cur.execute("""
+                    UPDATE chat_messages
+                    SET is_read = TRUE
+                    WHERE receiver = %s
+                      AND username != %s
+                      AND is_read = FALSE
+                """, (group, me))   # grp_ なし
+                conn.commit()
+                return jsonify({"status": "ok", "type": "group"})
+
+            # 全体
+            if room == "all":
+                cur.execute("""
+                    UPDATE chat_messages
+                    SET is_read = TRUE
+                    WHERE receiver = 'all'
+                      AND username != %s
+                      AND is_read = FALSE
+                """, (me,))
+                conn.commit()
+                return jsonify({"status": "ok", "type": "all"})
+
+    return jsonify({"error": "invalid request"}), 400
 
 
 @app.route('/api/bot/morning_schedule')
@@ -677,7 +640,6 @@ def morning_schedule():
                 """, (weekday,))
                 rows = cur.fetchall()
 
-            # メッセージ組み立て
             message_lines = [
                 "🌅 おはよう！",
                 "今日の時間割はこれだよ👇"
@@ -691,14 +653,22 @@ def morning_schedule():
             final_message = "\n".join(message_lines)
             created_at = now.strftime('%Y-%m-%d %H:%M')
 
-            # Bot専用テーブルに保存
+            # Bot専用テーブル
             cur.execute("""
                 INSERT INTO bot_messages (message, created_at)
                 VALUES (%s, %s)
             """, (final_message, created_at))
+
+            # 全体チャットに投稿
+            cur.execute("""
+                INSERT INTO chat_messages (username, message, receiver, file_path, created_at)
+                VALUES (%s, %s, %s, %s, %s)
+            """, ("ClassBot", final_message, "all", None, created_at))
+
             conn.commit()
 
     return "OK"
+
 
 
 @app.route('/timetable', methods=['GET', 'POST'])
