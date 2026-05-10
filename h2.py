@@ -73,6 +73,10 @@ from flask import jsonify
 
 @app.route("/api/weather")
 def get_weather_api():
+    grobal weather?cache, weather_cache_time
+    if time.time() - weather_cache_time < 60 and weather_cache is not None:
+        return jsonify(weather_cache)
+      
     try:
         url = ("https://api.open-meteo.com/v1/forecast?latitude=37.4&longitude=140.38&current=temperature_2m,wind_speed_10m,weathercode&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=Asia/Tokyo")
 
