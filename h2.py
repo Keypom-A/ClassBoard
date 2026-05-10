@@ -84,7 +84,7 @@ def api_create_group():
 
     with get_db() as conn:
         with conn.cursor() as cur:
-            # グループ作成
+            # グループ作成（name カラムでOK）
             cur.execute("""
                 INSERT INTO groups (name)
                 VALUES (%s)
@@ -147,6 +147,7 @@ def api_join_group():
             conn.commit()
 
     return jsonify({"success": True})
+
 
 
 @app.route("/api/unread_count")
@@ -212,30 +213,6 @@ def unread_count():
                 unread[g] = cur.fetchone()[0]
 
     return jsonify({"unread": unread})
-  
-@app.route("/api/join_group", methods=["POST"])
-def api_join_group():
-    if "username" not in session:
-        return jsonify({"success": False}), 403
-
-    me = session["username"]
-    data = request.get_json()
-    group = data.get("group")
-
-    if not group:
-        return jsonify({"success": False}), 400
-
-    with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO user_groups (username, group_name)
-                VALUES (%s, %s)
-                ON CONFLICT (username, group_name) DO NOTHING
-            """, (me, group))
-            conn.commit()
-
-    return jsonify({"success": True})
-
 
 
 @app.route("/api/delete_message", methods=["POST"])
