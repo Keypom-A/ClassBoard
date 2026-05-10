@@ -75,12 +75,11 @@ def get_weather_api():
     global weather_cache, weather_cache_time
 
     # 60秒以内ならキャッシュを返す
-    if time.time() - weather_cache_time < 60 and weather_cache is not None:
+    if weather_cache is not None and time.time() - weather_cache_time < 60:
         return jsonify(weather_cache)
 
     try:
         url = ("https://api.open-meteo.com/v1/forecast?latitude=37.4&longitude=140.38&current=temperature_2m,wind_speed_10m,weathercode&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=Asia/Tokyo")
-
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode("utf-8"))
@@ -107,6 +106,13 @@ def get_weather_api():
 
         return jsonify(weather_cache)
 
+    except urllib.error.HTTPError as e:
+        # 429ならキャッシュを返す
+        if e.code == 429 and weather_cache is not None:
+            print("Weather Warning: 429 Too Many Requests — using cached data")
+            return jsonify(weather_cache)
+        print("Weather Error:", e)
+        return jsonify({"error": "取得失敗"}), 500
     except Exception as e:
         print("Weather Error:", e)
         return jsonify({"error": "取得失敗"}), 500
