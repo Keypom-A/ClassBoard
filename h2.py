@@ -82,20 +82,20 @@ def api_create_group():
     if not group:
         return jsonify({"success": False}), 400
 
-    # グループを作成（存在しなければ）
     with get_db() as conn:
         with conn.cursor() as cur:
+            # グループ作成
             cur.execute("""
                 INSERT INTO groups (name)
                 VALUES (%s)
-                ON CONFLICT DO NOTHING
+                ON CONFLICT (name) DO NOTHING
             """, (group,))
 
-            # ★作成者を自動参加させる
+            # 作成者を自動参加
             cur.execute("""
                 INSERT INTO user_groups (username, group_name)
                 VALUES (%s, %s)
-                ON CONFLICT DO NOTHING
+                ON CONFLICT (username, group_name) DO NOTHING
             """, (me, group))
 
             conn.commit()
@@ -123,6 +123,31 @@ def api_leave_group():
             conn.commit()
 
     return jsonify({"success": True})
+
+
+@app.route("/api/join_group", methods=["POST"])
+def api_join_group():
+    if "username" not in session:
+        return jsonify({"success": False}), 403
+
+    me = session["username"]
+    data = request.get_json()
+    group = data.get("group")
+
+    if not group:
+        return jsonify({"success": False}), 400
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO user_groups (username, group_name)
+                VALUES (%s, %s)
+                ON CONFLICT (username, group_name) DO NOTHING
+            """, (me, group))
+            conn.commit()
+
+    return jsonify({"success": True})
+
 
 @app.route("/api/unread_count")
 def unread_count():
@@ -205,11 +230,12 @@ def api_join_group():
             cur.execute("""
                 INSERT INTO user_groups (username, group_name)
                 VALUES (%s, %s)
-                ON CONFLICT DO NOTHING
+                ON CONFLICT (username, group_name) DO NOTHING
             """, (me, group))
             conn.commit()
 
     return jsonify({"success": True})
+
 
 
 @app.route("/api/delete_message", methods=["POST"])
