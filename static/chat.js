@@ -103,6 +103,16 @@ function leaveGroup(group) {
     });
 }
 
+function toggleMembers() {
+    const list = document.getElementById("member-list");
+    if (list.style.display === "none") {
+        list.style.display = "block";
+    } else {
+        list.style.display = "none";
+    }
+}
+
+
 // ================================
 // 未読バッジ更新
 // ================================
