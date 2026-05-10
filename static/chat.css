@@ -280,3 +280,21 @@
     border-radius: 50%;
     margin-right: 6px;
 }
+.online-dot {
+    width: 10px;
+    height: 10px;
+    background-color: #4CAF50;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.offline-dot {
+    width: 10px;
+    height: 10px;
+    background-color: #aaa;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+
