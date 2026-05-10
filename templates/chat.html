@@ -332,6 +332,17 @@
             {% endif %}
         </div>
 
+        {% if group is not none %}
+        <div class="member-toggle" onclick="toggleMembers()">
+            👥 メンバー（{{ members|length }}）
+        </div>
+        <div id="member-list" class="member-list" style="display: none;">
+            {% for m in members %}
+            <div class="member-item">{{ m }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <div class="chat-display">
 
             <!-- ★★★ 統合タイムライン（all_msgs） ★★★ -->
