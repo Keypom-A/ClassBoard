@@ -228,23 +228,23 @@
 }
 
 .member-toggle {
-    padding: 12px;
-    background: #ffffff;
-    border: 2px solid #4a90e2;
-    border-radius: 10px;
-    color: #4a90e2;
-    font-weight: bold;
-    text-align: center;
-    cursor: pointer;
-    margin-bottom: 10px;
-    transition: 0.2s;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 12px !important;
+    background: #ffffff !important;
+    border: 2px solid #4a90e2 !important;
+    border-radius: 10px !important;
+    color: #4a90e2 !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    margin-bottom: 10px !important;
+    transition: 0.2s !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
 }
 
 .member-toggle:hover {
-    background: #4a90e2;
-    color: white;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    background: #4a90e2 !important;
+    color: white !important;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
 }
 
 .member-list {
