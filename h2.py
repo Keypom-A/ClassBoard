@@ -7,10 +7,11 @@ import cloudinary
 import cloudinary.uploader
 import json
 import urllib.request
+import urllib.error
 from flask import jsonify
 import requests
 import time
-import urllib.error
+
 
 
 weather_cache = None
