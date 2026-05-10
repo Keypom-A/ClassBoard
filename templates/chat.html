@@ -307,6 +307,7 @@
         <div class="chat-header">
             {% if group %}
                 グループ: {{ group }}
+                 <button class="leave-btn" onclick="leaveGroup('{{ group }}')">🚪 退出</button>
             {% elif partner %}
                 DM: {{ partner }}
             {% else %}
