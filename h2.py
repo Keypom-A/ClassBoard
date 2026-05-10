@@ -395,6 +395,7 @@ def chat():
         unread_all=unread_all,
         unread_group=unread_group,
         unread_dm=unread_dm
+        members=members
     )
 
 
