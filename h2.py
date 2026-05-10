@@ -74,13 +74,7 @@ from flask import jsonify
 @app.route("/api/weather")
 def get_weather_api():
     try:
-        url = (
-            "https://api.open-meteo.com/v1/forecast"
-            "?latitude=37.4&longitude=140.38"
-            "&current=temperature_2m,wind_speed_10m,weathercode"
-            "&daily=weather_code,temperature_2m_max,temperature_2m_min"
-            "&forecast_days=3&timezone=Asia/Tokyo"
-        )
+        url = ("https://api.open-meteo.com/v1/forecast?latitude=37.4&longitude=140.38&current=temperature_2m,wind_speed_10m,weathercode&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=Asia/Tokyo")
 
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=5) as response:
