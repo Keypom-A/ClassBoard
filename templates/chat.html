@@ -455,5 +455,20 @@ function toggleMembers() {
     box.style.display = (box.style.display === "none") ? "block" : "none";
 }
 </script>
+<script>
+function sendActive() {
+    fetch("/active", { method: "POST" });
+}
+
+setInterval(sendActive, 10000);
+sendActive();
+
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        sendActive();
+    }
+});
+</script>
+
 </body>
 </html>
