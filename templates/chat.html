@@ -103,6 +103,7 @@
         .chat-header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             padding: 10px;
             background: #fff;
             border-bottom: 1px solid #ddd;
@@ -110,6 +111,22 @@
             font-weight: bold;
         }
 
+
+        .exit-btn {
+            margin-left: auto;
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            color: #888;
+            cursor: pointer;
+            padding: 4px 6px;
+            opacity: 0.7;
+        }
+        .exit-btn:hover {
+            opacity: 1;
+            color: #ff4d4d;
+        }   
+        
         .chat-display {
             flex: 1;
             overflow-y: auto;
