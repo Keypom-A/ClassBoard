@@ -73,7 +73,7 @@ from flask import jsonify
 
 @app.route("/api/weather")
 def get_weather_api():
-    grobal weather?cache, weather_cache_time
+    global weather_cache, weather_cache_time
     if time.time() - weather_cache_time < 60 and weather_cache is not None:
         return jsonify(weather_cache)
       
