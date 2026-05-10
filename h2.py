@@ -272,17 +272,17 @@ def chat():
           # ----------------------------
           # ★ グループメンバー一覧 + オンライン状態
           # ----------------------------
-          group_members = []
+          members = []
           if group:
               cur.execute("""
-              SELECT username, online
-              FROM users
-              WHERE username IN (
-              SELECT username FROM user_groups WHERE group_name = %s
-              )
-              ORDER BY username ASC
+                  SELECT username, online
+                  FROM users
+                  WHERE username IN (
+                      SELECT username FROM user_groups WHERE group_name = %s
+                  )
+                  ORDER BY username ASC
               """, (group,))
-            group_members = [{"name": r[0], "online": r[1]} for r in cur.fetchall()]
+              members = [{"name": r[0], "online": r[1]} for r in cur.fetchall()]
 
             # 6. 既読処理
             if partner:
