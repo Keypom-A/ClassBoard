@@ -684,6 +684,49 @@ def morning_schedule():
 
     return "OK"
 
+@app.route("/active", methods=["POST"])
+def active():
+    me = session.get("username")
+    if not me:
+        return "no session", 403
+
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE users SET last_active = NOW() WHERE username = %s",
+                    (me,)
+                )
+                conn.commit()
+    except Exception as e:
+        print("active update error:", e)
+        return "error", 500
+
+    return "ok"
+  
+@app.route("/members")
+def members():
+    group = request.args.get("group")
+    me = session.get("username")
+
+    if not me:
+        return redirect("/login")
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT username,
+                       CASE WHEN last_active > NOW() - INTERVAL '20 seconds'
+                            THEN 1 ELSE 0 END AS online
+                FROM users
+                WHERE username IN (
+                    SELECT username FROM user_groups WHERE group_name = %s
+                )
+                ORDER BY username ASC
+            """, (group,))
+            members = cur.fetchall()
+
+    return jsonify(members)
 
 
 @app.route('/timetable', methods=['GET', 'POST'])
