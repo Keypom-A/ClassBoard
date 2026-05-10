@@ -227,3 +227,27 @@
     color: #ff4d4d;
 }
 
+.member-toggle {
+    padding: 10px;
+    background: #fafafa;
+    border-bottom: 1px solid #eee;
+    font-size: 15px;
+    cursor: pointer;
+    color: #444;
+}
+
+.member-toggle:hover {
+    background: #f0f0f0;
+}
+
+.member-list {
+    padding: 10px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+}
+
+.member-item {
+    padding: 4px 0;
+    font-size: 14px;
+    color: #333;
+}
