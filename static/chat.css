@@ -229,25 +229,44 @@
 
 .member-toggle {
     padding: 10px;
-    background: #fafafa;
-    border-bottom: 1px solid #eee;
-    font-size: 15px;
+    background: #4a90e2;
+    color: white;
+    border-radius: 6px;
     cursor: pointer;
-    color: #444;
-}
-
-.member-toggle:hover {
-    background: #f0f0f0;
+    margin-bottom: 8px;
+    text-align: center;
 }
 
 .member-list {
-    padding: 10px;
-    background: #fff;
-    border-bottom: 1px solid #eee;
+    background: #f7f7f7;
+    border-radius: 6px;
+    padding: 8px;
 }
 
 .member-item {
-    padding: 4px 0;
+    padding: 6px 4px;
     font-size: 14px;
-    color: #333;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.member-item:hover {
+    background: #ececec;
+}
+
+.online-dot {
+    width: 8px;
+    height: 8px;
+    background: #4CAF50;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.offline-dot {
+    width: 8px;
+    height: 8px;
+    background: #bbb;
+    border-radius: 50%;
+    margin-right: 6px;
 }
