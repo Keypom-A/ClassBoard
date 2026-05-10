@@ -795,6 +795,8 @@ def delete_task(task_id):
             conn.commit()
     return redirect(url_for('index'))
 
+from zoneinfo import ZoneInfo
+
 @app.route('/users')
 def user_list():
     if session.get('role') != 'admin':
@@ -815,6 +817,13 @@ def user_list():
                 ORDER BY username ASC
             """)
             users = cur.fetchall()
+
+    # ★★★ ② JST 変換はここに入れる ★★★
+    for u in users:
+        if u['last_active']:
+            u['last_active'] = u['last_active'].replace(
+                tzinfo=ZoneInfo("UTC")
+            ).astimezone(ZoneInfo("Asia/Tokyo"))
 
     return render_template('users.html', users=users, username=session['username'])
 
