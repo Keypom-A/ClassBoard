@@ -336,16 +336,7 @@
         <div class="member-toggle" onclick="toggleMembers()">
             👥 メンバー（{{ members|length }}）
         </div>
-        <div id="member-list" class="member-list" style="display: none;">
-            {% for m in members %}
-            <div class="member-item" onclick="location.href='/chat?user={{ m.name }}'">
-                {% if m.online == 1 %}
-                    <span class="online-dot"></span>
-                {% else %}
-                    <span class="offline-dot"></span>
-                {% endif %}
-                {{ m.name }}
-            </div>
+       <div id="member-list" class="member-list" style="display: none;"></div>
             {% endfor %}
         </div>
         {% endif %}
@@ -427,6 +418,8 @@
 </div>
 <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
 
+
+    
 <script>
 function toggleMenu() {
     document.querySelector(".sidebar").classList.toggle("open");
@@ -468,6 +461,36 @@ document.addEventListener("visibilitychange", () => {
         sendActive();
     }
 });
+
+function updateMembers() {
+    fetch("/members?group=" + currentGroup)
+        .then(res => res.json())
+        .then(data => {
+            const list = document.getElementById("member-list");
+            list.innerHTML = "";
+
+            data.forEach(m => {
+                const username = m[0];
+                const online = m[1];
+
+                const dot = online === 1
+                    ? '<span class="online-dot"></span>'
+                    : '<span class="offline-dot"></span>';
+
+                list.innerHTML += `
+                    <div class="member-item" onclick="location.href='/chat?user=${username}'">
+                        ${dot}
+                        ${username}
+                    </div>
+                `;
+            });
+        });
+}
+
+// 5秒ごとに更新
+setInterval(updateMembers, 5000);
+updateMembers();
+
 </script>
 
 </body>
