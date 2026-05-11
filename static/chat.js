@@ -113,6 +113,19 @@ function toggleMembers() {
 }
 
 
+function updateMembers() {
+    const list = document.getElementById("member-list");
+    if (!list) return;  // ← これだけで解決
+
+    fetch("/members?group=" + currentGroup)
+        .then(res => res.json())
+        .then(data => {
+            list.innerHTML = "";
+            ...
+        });
+}
+
+
 // ================================
 // 未読バッジ更新
 // ================================
