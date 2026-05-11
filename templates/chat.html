@@ -491,11 +491,56 @@ updateMembers();
 
 </script>
 <script>
-    const currentGroup = "{{ group }}";
+    const currentGroup = "{{ group or '' }}";
 </script>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/static/js/socket.js"></script>
 
+<script>
+socket.on("chat_message", (data) => {
+    const chat = document.querySelector(".chat-display");
+
+    const html = `
+        <div class="msg-row">
+            <div class="message ${data.user === "{{ username }}" ? "my-msg" : "other-msg"}">
+                <div class="user-name">
+                    ${data.user}
+                    <span class="msg-time">${new Date(data.time).toLocaleTimeString()}</span>
+                </div>
+                <div class="msg-text">${data.text}</div>
+            </div>
+        </div>
+    `;
+
+    chat.insertAdjacentHTML("beforeend", html);
+    chat.scrollTop = chat.scrollHeight;
+});
+</script>
+<script>
+const form = document.querySelector(".chat-input-area form");
+const input = form.querySelector('input[name="message"]');
+const fileInput = form.querySelector('input[name="file"]');
+
+form.addEventListener("submit", function(e) {
+    e.preventDefault();  // ← ページ遷移を止める
+
+    const text = input.value.trim();
+    if (!text && !fileInput.files.length) return;
+
+    // WebSocket で送信
+    socket.emit("chat_message", {
+        text: text,
+        user: "{{ username }}",
+        group: "{{ group }}",
+        partner: "{{ partner }}",
+        time: Date.now()
+    });
+
+    // 入力欄をクリア
+    input.value = "";
+    fileInput.value = "";
+});
+</script>
 
 </body>
 </html>
