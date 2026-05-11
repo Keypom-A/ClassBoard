@@ -885,17 +885,32 @@ def login():
                     return redirect(url_for('index'))
     return render_template('login.html')
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
+@app.route('/login', methods=['GET', 'POST'])
+def login():
     if request.method == 'POST':
         try:
             with get_db() as conn:
-                with conn.cursor() as cur:
-                    cur.execute('INSERT INTO users (username, password, role) VALUES (%s, %s, %s)', (request.form['username'], request.form['password'], 'user'))
-                conn.commit()
-            return redirect(url_for('login'))
-        except: return "既に使われている名前です"
-    return render_template('register.html')
+                with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+                    cur.execute(
+                        'SELECT * FROM users WHERE username = %s AND password = %s',
+                        (request.form['username'], request.form['password'])
+                    )
+                    user = cur.fetchone()
+
+                    if user:
+                        session['username'] = user['username']
+                        session['role'] = user['role']
+                        return redirect(url_for('index'))
+
+            # ログイン失敗（ユーザーなし）
+            return render_template('login.html', error="ユーザー名またはパスワードが違います")
+
+        except Exception as e:
+            print("LOGIN ERROR:", e)
+            return "Login Error: " + str(e), 500
+
+    return render_template('login.html')
+
 
 @app.route('/logout')
 def logout():
