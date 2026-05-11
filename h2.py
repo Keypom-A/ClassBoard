@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch()
 import os
 import psycopg2
 import psycopg2.extras
@@ -20,9 +22,8 @@ weather_cache = None
 weather_cache_time = 0
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
-
 socketio = SocketIO(app, cors_allowed_origins="*")
+
 
 
 # --- Cloudinary 設定 ---
@@ -948,8 +949,5 @@ def handle_chat_message(data):
 
 
 if __name__ == '__main__':
-    import eventlet
-    eventlet.monkey_patch()
-
     port = int(os.environ.get("PORT", 5000))
     socketio.run(app, host='0.0.0.0', port=port)
