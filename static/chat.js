@@ -215,6 +215,50 @@ socket.on("connect", () => {
 });
 
 // ================================
+// ★★★ WebSocket 受信処理（STEP4）★★★
+// ================================
+socket.on("chat_message", (msg) => {
+    console.log("受信:", msg);
+
+    const display = document.querySelector(".chat-display");
+    if (!display) return;
+
+    const row = document.createElement("div");
+    row.classList.add("msg-row");
+
+    // 自分のメッセージ
+    if (msg.username === username) {
+        row.innerHTML = `
+            <div class="message my-msg">
+                <div class="user-name">
+                    ${msg.username}
+                    <span class="msg-time">${msg.created_at}</span>
+                </div>
+                <div class="msg-text">${msg.text}</div>
+            </div>
+        `;
+    }
+    // 他人のメッセージ
+    else {
+        row.innerHTML = `
+            <div class="message other-msg">
+                <div class="user-name">
+                    ${msg.username}
+                    <span class="msg-time">${msg.created_at}</span>
+                </div>
+                <div class="msg-text">${msg.text}</div>
+            </div>
+        `;
+    }
+
+    display.appendChild(row);
+
+    // 自動スクロール
+    display.scrollTop = display.scrollHeight;
+});
+
+
+// ================================
 // ★★★ WebSocket 送信処理（STEP3 完成）★★★
 // ================================
 document.getElementById("chat-form").addEventListener("submit", function(e) {
@@ -232,6 +276,7 @@ document.getElementById("chat-form").addEventListener("submit", function(e) {
 
     input.value = "";
 });
+
 
 // ================================
 // 未読数更新
