@@ -23,8 +23,7 @@ weather_cache_time = 0
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
-
-
+app.secret_key = "your-secret-key-here"
 
 # --- Cloudinary 設定 ---
 # RenderのEnvironmentに登録した変数から読み込みます
