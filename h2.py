@@ -876,18 +876,6 @@ def clear_tasks():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        with get_db() as conn:
-            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-                cur.execute('SELECT * FROM users WHERE username = %s AND password = %s', (request.form['username'], request.form['password']))
-                user = cur.fetchone()
-                if user:
-                    session['username'], session['role'] = user['username'], user['role']
-                    return redirect(url_for('index'))
-    return render_template('login.html')
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
         try:
             with get_db() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
