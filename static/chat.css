@@ -133,19 +133,25 @@
     box-sizing: border-box;
 }
 
-/* ← ここが最重要：スマホで見切れない魔法 */
+/* テキスト入力欄 */
 .input-row input[type="text"] {
     flex: 1;
-    min-width: 0; /* ← これが無いと絶対に見切れる */
+    min-width: 0; /* ← スマホで必須 */
     padding: 8px 10px;
     border-radius: 6px;
     border: 1px solid #ccc;
     font-size: 14px;
 }
 
-/* ボタンが潰れないようにする */
+/* ファイル選択欄（縮むようにする） */
+.input-row input[type="file"] {
+    flex-shrink: 1;
+    max-width: 90px; /* ← スマホで見切れない */
+}
+
+/* 送信ボタン */
 .input-row .send {
-    flex-shrink: 0; /* ← ボタンが押し出されない */
+    flex-shrink: 0; /* ← ボタンが潰れない */
     padding: 8px 14px;
     border-radius: 6px;
     border: none;
@@ -163,6 +169,10 @@
     .input-row input[type="text"] {
         font-size: 14px;
         padding: 8px;
+    }
+
+    .input-row input[type="file"] {
+        max-width: 70px;
     }
 
     .input-row .send {
