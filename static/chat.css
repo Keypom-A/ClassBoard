@@ -116,11 +116,8 @@
     background: #e60000;
 }
 
-/* ===== 送信フォーム（スマホ対応版） ===== */
-#sendForm {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+/* 入力欄 */
+.chat-input-area {
     padding: 10px;
     background: #fff;
     border-top: 1px solid #ddd;
@@ -128,45 +125,52 @@
     box-sizing: border-box;
 }
 
-#messageInput {
-    flex: 1;
-    min-width: 0; /* ← スマホで必須（これが無いと見切れる） */
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
+.input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-#sendForm button {
-    flex-shrink: 0; /* ← ボタンが潰れない */
-    padding: 10px 16px;
+/* ← ここが最重要：スマホで見切れない魔法 */
+.input-row input[type="text"] {
+    flex: 1;
+    min-width: 0; /* ← これが無いと絶対に見切れる */
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+/* ボタンが潰れないようにする */
+.input-row .send {
+    flex-shrink: 0; /* ← ボタンが押し出されない */
+    padding: 8px 14px;
+    border-radius: 6px;
     border: none;
     background: #007bff;
-    color: white;
-    border-radius: 6px;
+    color: #fff;
     cursor: pointer;
 }
 
-#sendForm button:hover {
-    background: #005fcc;
-}
-
-/* ===== スマホ最適化 ===== */
-@media (max-width: 600px) {
-    #sendForm {
+/* スマホ対応 */
+@media (max-width: 768px) {
+    .chat-input-area {
         padding: 8px;
-        gap: 6px;
     }
 
-    #messageInput {
+    .input-row input[type="text"] {
         font-size: 14px;
         padding: 8px;
     }
 
-    #sendForm button {
+    .input-row .send {
         font-size: 14px;
         padding: 8px 12px;
     }
 }
+
 
 
 /* ============================
