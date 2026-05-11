@@ -1,5 +1,5 @@
-from gevent import monkey
-monkey.patch_all()
+import eventlet
+eventlet.monkey_patch()
 
 import os
 import psycopg2
@@ -17,16 +17,10 @@ import time
 from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
-socketio = SocketIO(app, async_mode="gevent", cors_allowed_origins="*")
+app.secret_key = os.environ.get("SECRET_KEY", "secret")
 
-
-weather_cache = None
-weather_cache_time = 0
-
-app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
-app.secret_key = "your-secret-key-here"
-
+# Socket.IO（eventlet）
+socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
 # --- Cloudinary 設定 ---
 # RenderのEnvironmentに登録した変数から読み込みます
 cloudinary.config(
