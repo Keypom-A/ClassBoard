@@ -1,5 +1,6 @@
-import eventlet
-eventlet.monkey_patch()
+from gevent import monkey
+monkey.patch_all()
+
 import os
 import psycopg2
 import psycopg2.extras
@@ -15,8 +16,8 @@ import requests
 import time
 from flask_socketio import SocketIO, emit
 
-
-
+app = Flask(__name__)
+socketio = SocketIO(app, async_mode="gevent", cors_allowed_origins="*")
 
 
 weather_cache = None
