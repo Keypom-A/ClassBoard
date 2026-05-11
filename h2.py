@@ -11,6 +11,8 @@ import urllib.error
 from flask import jsonify
 import requests
 import time
+from flask_socketio import SocketIO, emit
+
 
 
 
@@ -19,6 +21,9 @@ weather_cache_time = 0
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
+
+socketio = SocketIO(app, cors_allowed_origins="*")
+
 
 # --- Cloudinary 設定 ---
 # RenderのEnvironmentに登録した変数から読み込みます
@@ -935,7 +940,13 @@ def schedule():
 
     return render_template('schedule.html', role=session.get('role'))
 
+@socketio.on("chat_message")
+def handle_chat_message(data):
+    print("Received message:", data)
+    emit("chat_message", data, broadcast=True)
+
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    socketio.run(app, host='0.0.0.0', port=port)
