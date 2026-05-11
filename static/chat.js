@@ -115,15 +115,31 @@ function toggleMembers() {
 
 function updateMembers() {
     const list = document.getElementById("member-list");
-    if (!list) return;  // ← これだけで解決
+    if (!list) return;
 
     fetch("/members?group=" + currentGroup)
         .then(res => res.json())
         .then(data => {
             list.innerHTML = "";
-            ...
+
+            data.forEach(m => {
+                const username = m[0];
+                const online = m[1];
+
+                const dot = online === 1
+                    ? '<span class="online-dot"></span>'
+                    : '<span class="offline-dot"></span>';
+
+                list.innerHTML += `
+                    <div class="member-item" onclick="location.href='/chat?user=${username}'">
+                        ${dot}
+                        ${username}
+                    </div>
+                `;
+            });
         });
 }
+
 
 
 // ================================
