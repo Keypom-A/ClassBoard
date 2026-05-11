@@ -66,6 +66,9 @@ document.addEventListener("click", function (e) {
     }
 });
 
+// ================================
+// グループ作成（重複定義修正済）
+// ================================
 function createGroup() {
     const name = prompt("作成するグループ名を入力してください");
     if (!name) return;
@@ -85,6 +88,9 @@ function createGroup() {
     });
 }
 
+// ================================
+// グループ退出
+// ================================
 function leaveGroup(group) {
     if (!confirm(`${group} から退出しますか？`)) return;
 
@@ -103,6 +109,9 @@ function leaveGroup(group) {
     });
 }
 
+// ================================
+// メンバー一覧開閉
+// ================================
 function toggleMembers() {
     const list = document.getElementById("member-list");
     if (list.style.display === "none") {
@@ -112,7 +121,9 @@ function toggleMembers() {
     }
 }
 
-
+// ================================
+// メンバー一覧更新
+// ================================
 function updateMembers() {
     const list = document.getElementById("member-list");
     if (!list) return;
@@ -139,8 +150,6 @@ function updateMembers() {
             });
         });
 }
-
-
 
 // ================================
 // 未読バッジ更新
@@ -188,9 +197,28 @@ function updateUnread() {
             }
         });
 }
-// ===== WebSocket 送信処理 =====
+
+// ================================
+// ★★★ WebSocket 接続（重要）★★★
+// ================================
+const socket = io({
+    transports: ["websocket"]
+});
+
+socket.on("connect", () => {
+    console.log("WebSocket connected:", socket.id);
+
+    socket.emit("join_room", {
+        group: currentGroup,
+        partner: currentPartner
+    });
+});
+
+// ================================
+// ★★★ WebSocket 送信処理（STEP3 完成）★★★
+// ================================
 document.getElementById("chat-form").addEventListener("submit", function(e) {
-    e.preventDefault();  // ← ページ遷移を止める
+    e.preventDefault();
 
     const input = document.getElementById("chat-input");
     const text = input.value.trim();
@@ -202,9 +230,11 @@ document.getElementById("chat-form").addEventListener("submit", function(e) {
         partner: currentPartner,
     });
 
-    input.value = "";  // 入力欄を空にする
+    input.value = "";
 });
 
-// 5秒ごとに未読数更新
+// ================================
+// 未読数更新
+// ================================
 setInterval(updateUnread, 5000);
 updateUnread();
