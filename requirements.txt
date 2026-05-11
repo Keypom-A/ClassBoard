@@ -7,4 +7,6 @@ requests
 flask-socketio
 python-socketio
 python-engineio
-eventlet
+gevent
+gevent-websocket
+
