@@ -116,23 +116,28 @@
     background: #e60000;
 }
 
-/* ===== 送信フォーム ===== */
+/* ===== 送信フォーム（スマホ対応版） ===== */
 #sendForm {
     display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 10px;
     background: #fff;
     border-top: 1px solid #ddd;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 #messageInput {
     flex: 1;
+    min-width: 0; /* ← スマホで必須（これが無いと見切れる） */
     padding: 10px;
     border-radius: 6px;
     border: 1px solid #ccc;
-    margin-right: 10px;
 }
 
 #sendForm button {
+    flex-shrink: 0; /* ← ボタンが潰れない */
     padding: 10px 16px;
     border: none;
     background: #007bff;
@@ -144,6 +149,25 @@
 #sendForm button:hover {
     background: #005fcc;
 }
+
+/* ===== スマホ最適化 ===== */
+@media (max-width: 600px) {
+    #sendForm {
+        padding: 8px;
+        gap: 6px;
+    }
+
+    #messageInput {
+        font-size: 14px;
+        padding: 8px;
+    }
+
+    #sendForm button {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+}
+
 
 /* ============================
    ClassBot 専用タイムライン
