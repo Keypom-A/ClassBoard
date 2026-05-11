@@ -460,30 +460,7 @@ document.addEventListener("visibilitychange", () => {
     }
 });
 
-function updateMembers() {
-    fetch("/members?group=" + currentGroup)
-        .then(res => res.json())
-        .then(data => {
-            const list = document.getElementById("member-list");
-            list.innerHTML = "";
 
-            data.forEach(m => {
-                const username = m[0];
-                const online = m[1];
-
-                const dot = online === 1
-                    ? '<span class="online-dot"></span>'
-                    : '<span class="offline-dot"></span>';
-
-                list.innerHTML += `
-                    <div class="member-item" onclick="location.href='/chat?user=${username}'">
-                        ${dot}
-                        ${username}
-                    </div>
-                `;
-            });
-        });
-}
 
 // 5秒ごとに更新
 setInterval(updateMembers, 5000);
