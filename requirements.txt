@@ -10,3 +10,4 @@ python-socketio==5.11.1
 python-engineio==4.9.0
 
 eventlet==0.33.3
+setuptools
