@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch()
 import os
 import psycopg2
 import psycopg2.extras
@@ -12,8 +14,7 @@ from flask import jsonify
 import requests
 import time
 from flask_socketio import SocketIO, emit
-import eventlet
-eventlet.monkey_patch()
+
 
 
 
