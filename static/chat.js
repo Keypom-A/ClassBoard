@@ -283,3 +283,6 @@ document.getElementById("chat-form").addEventListener("submit", function(e) {
 // ================================
 setInterval(updateUnread, 5000);
 updateUnread();
+
+
+e.preventDefault(); // ← ページ遷移を完全に止める
