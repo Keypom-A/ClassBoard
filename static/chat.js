@@ -188,6 +188,22 @@ function updateUnread() {
             }
         });
 }
+// ===== WebSocket 送信処理 =====
+document.getElementById("chat-form").addEventListener("submit", function(e) {
+    e.preventDefault();  // ← ページ遷移を止める
+
+    const input = document.getElementById("chat-input");
+    const text = input.value.trim();
+    if (!text) return;
+
+    socket.emit("chat_message", {
+        text: text,
+        group: currentGroup,
+        partner: currentPartner,
+    });
+
+    input.value = "";  // 入力欄を空にする
+});
 
 // 5秒ごとに未読数更新
 setInterval(updateUnread, 5000);
