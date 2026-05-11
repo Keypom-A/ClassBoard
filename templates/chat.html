@@ -399,16 +399,15 @@
         </div>
 
         <div class="chat-input-area">
-            <form action="{{ url_for('chat', user=partner, group=group) }}"
-                  method="post"
-                  enctype="multipart/form-data">
-
+            <form id="chat-form"
+                　action="{{ url_for('chat', user=partner, group=group) }}"
+                　method="post"
+                　enctype="multipart/form-data">
                 <div class="input-row">
-                    <input type="text" name="message" placeholder="メッセージを入力">
+                    <input id="chat-input" type="text" name="message" placeholder="メッセージを入力">
                     <input type="file" name="file">
                     <button class="send" type="submit">送信</button>
                 </div>
-
             </form>
         </div>
 
