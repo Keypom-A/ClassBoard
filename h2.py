@@ -14,13 +14,10 @@ import urllib.error
 from flask import jsonify
 import requests
 import time
-from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "secret")
 
-# Socket.IO（eventlet）
-socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
 # --- Cloudinary 設定 ---
 # RenderのEnvironmentに登録した変数から読み込みます
 cloudinary.config(
@@ -939,13 +936,4 @@ def schedule():
 
     return render_template('schedule.html', role=session.get('role'))
 
-@socketio.on("chat_message")
-def handle_chat_message(data):
-    print("Received message:", data)
-    emit("chat_message", data, broadcast=True)
-
-
-
-if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=10000, debug=False)
 
