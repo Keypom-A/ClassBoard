@@ -78,32 +78,32 @@ def get_now_jst():
 def get_weather_api():
     global weather_cache, weather_cache_time
 
-    # 60秒以内ならキャッシュを返す
-    if weather_cache is not None and time.time() - weather_cache_time < 60:
+    # 300秒以内ならキャッシュを返す（5分）
+    if weather_cache is not None and time.time() - weather_cache_time < 300:
         return jsonify(weather_cache)
 
     try:
-        url = url = ("https://api.open-meteo.com/v1/forecast"
-       "?latitude=37.4&longitude=140.38"
-       "&current=temperature_2m,wind_speed_10m,weathercode"
-       "&daily=weathercode,temperature_2m_max,temperature_2m_min"
-       "&forecast_days=3&timezone=Asia/Tokyo")
-
-
+        url = (
+            "https://api.open-meteo.com/v1/forecast"
+            "?latitude=37.4&longitude=140.38"
+            "&current=temperature_2m,wind_speed_10m,weathercode"
+            "&daily=weathercode,temperature_2m_max,temperature_2m_min"
+            "&forecast_days=3&timezone=Asia/Tokyo"
+        )
 
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode("utf-8"))
 
-        # ★ ここが重要：エラー JSON を検出する
-        if "error" in data and data["error"] is True:
-            print("Weather Warning: API returned error JSON — using cached data")
-            if weather_cache is not None:
-                return jsonify(weather_cache)
-            else:
-                return jsonify({"error": "取得失敗"}), 500
+        # 欠損対策
+        daily_codes = data["daily"].get("weathercode", [])
 
-        # ここから通常処理
+        def safe_get(arr, index, default=0):
+            try:
+                return arr[index]
+            except:
+                return default
+
         current = {
             "temp": round(data["current"]["temperature_2m"]),
             "code": data["current"]["weathercode"]
@@ -117,7 +117,7 @@ def get_weather_api():
                 "label": labels[i],
                 "max": round(data["daily"]["temperature_2m_max"][i]),
                 "min": round(data["daily"]["temperature_2m_min"][i]),
-                "code": data["daily"]["weathercode"][i]
+                "code": safe_get(daily_codes, i, 0)
             })
 
         # キャッシュ更新
@@ -128,9 +128,14 @@ def get_weather_api():
 
     except Exception as e:
         print("Weather Error:", e)
+
+        # キャッシュがあればそれを返す（再リクエスト防止）
         if weather_cache is not None:
             return jsonify(weather_cache)
-        return jsonify({"error": "取得失敗"}), 500
+
+        # キャッシュが無い場合でも 200 を返す（429防止）
+        return jsonify({"current": None, "forecast": []}), 200
+
 
 
 @app.route("/")
