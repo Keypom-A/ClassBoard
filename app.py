@@ -14,6 +14,8 @@ import time
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "secret")
+global weather_cache, weather_cache_time
+
 
 # --- Cloudinary 設定 ---
 # RenderのEnvironmentに登録した変数から読み込みます
