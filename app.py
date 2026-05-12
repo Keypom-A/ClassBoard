@@ -111,7 +111,7 @@ def get_weather_api():
                 "label": labels[i],
                 "max": round(data["daily"]["temperature_2m_max"][i]),
                 "min": round(data["daily"]["temperature_2m_min"][i]),
-                "code": data["daily"]["weather_code"][i]
+                "code": data["daily"]["weathercode"][i]
             })
 
         # キャッシュ更新
