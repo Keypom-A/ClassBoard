@@ -106,7 +106,7 @@ def get_weather_api():
         # ここから通常処理
         current = {
             "temp": round(data["current"]["temperature_2m"]),
-            "code": data["current"]["weathercode"]
+            "code": data["current"]["weather_code"]
         }
 
         labels = ["今日", "明日", "明後日"]
