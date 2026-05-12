@@ -83,13 +83,9 @@ def get_weather_api():
         return jsonify(weather_cache)
 
     try:
-        url = (
-            "https://api.open-meteo.com/v1/forecast"
-            "?latitude=37.4&longitude=140.38"
-            "&current=temperature_2m,wind_speed_10m,weathercode"
-            "&daily=weather_code,temperature_2m_max,temperature_2m_min"
-            "&forecast_days=3&timezone=Asia/Tokyo"
-        )
+        url = ("https://api.open-meteo.com/v1/forecast?latitude=37.4&longitude=140.38&current=temperature_2m,wind_speed_10m,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min&forecast_days=3&timezone=Asia/Tokyo"
+)
+
 
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=5) as response:
@@ -106,7 +102,7 @@ def get_weather_api():
         # ここから通常処理
         current = {
             "temp": round(data["current"]["temperature_2m"]),
-            "code": data["current"]["weather_code"]
+            "code": data["current"]["weathercode"]
         }
 
         labels = ["今日", "明日", "明後日"]
