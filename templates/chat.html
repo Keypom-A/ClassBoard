@@ -496,31 +496,7 @@ socket.on("chat_message", (data) => {
     chat.scrollTop = chat.scrollHeight;
 });
 </script>
-<script>
-const form = document.querySelector(".chat-input-area form");
-const input = form.querySelector('input[name="message"]');
-const fileInput = form.querySelector('input[name="file"]');
 
-form.addEventListener("submit", function(e) {
-    e.preventDefault();  // ← ページ遷移を止める
-
-    const text = input.value.trim();
-    if (!text && !fileInput.files.length) return;
-
-    // WebSocket で送信
-    socket.emit("chat_message", {
-        text: text,
-        user: "{{ username }}",
-        group: "{{ group }}",
-        partner: "{{ partner }}",
-        time: Date.now()
-    });
-
-    // 入力欄をクリア
-    input.value = "";
-    fileInput.value = "";
-});
-</script>
 
 </body>
 </html>
