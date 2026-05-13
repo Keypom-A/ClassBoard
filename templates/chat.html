@@ -456,21 +456,17 @@ function sendActive() {
 setInterval(sendActive, 10000);
 sendActive();
 
-document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) {
-        sendActive();
-    }
+document.addEventListener("DOMContentLoaded", () => {
+    updateUnread();
 });
 
 
 
 // 5秒ごとに更新
-setInterval(updateMembers, 5000);
+setInterval(updateMembers, 10000);
 updateMembers();
 
 </script>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="/socket.io/socket.io.js"></script>
 <script>
     const username = "{{ session['username'] }}";
 </script>
@@ -496,6 +492,12 @@ socket.on("chat_message", (data) => {
     chat.scrollTop = chat.scrollHeight;
 });
 </script>
+
+{% if just_read %}
+<script>
+    updateUnread();  // ← 既読処理直後に1回だけ実行
+</script>
+{% endif %}
 
 
 </body>
