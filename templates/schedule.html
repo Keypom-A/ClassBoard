@@ -20,7 +20,7 @@
         <!-- PDFの表示エリア（CloudinaryのURL） -->
         <iframe src="{{ url }}" class="pdf-viewer"></iframe>
         
-        <p><a href="https://cloudinary.com" target="_blank">↗️ 全画面で開く・ダウンロード</a></p>
+        <p><a href="{{ item.file_path }}" target="_blank">↗️ 全画面で開く・ダウンロード</a></p>
 
         {% if role == 'admin' %}
         <div class="upload-section">
