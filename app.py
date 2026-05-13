@@ -926,6 +926,9 @@ def schedule():
                             overwrite=True,
                             resource_type="auto"
                         )
+
+                        print("UPLOAD RESULT:", res)
+                        
                         file_url = res.get('secure_url')
 
                         # DBに保存（毎回新規でOK）
