@@ -312,30 +312,36 @@ def chat():
                 """, (group,))
                 members = [{"name": r[0], "online": r[1]} for r in cur.fetchall()]
 
-            # 6. 既読処理
+            # 6. 既読処理（今開いている画面だけ既読にする）
+            # --- DM の既読処理 ---
             if partner:
                 cur.execute("""
                     UPDATE chat_messages
                     SET is_read = TRUE
-                    WHERE receiver = %s AND username != %s
-                """, (me, me))
+                    WHERE receiver = %s
+                      AND username != %s
+                """, (partner, me))
                 conn.commit()
 
-            if group:
+            # --- グループの既読処理 ---
+            elif group:
                 cur.execute("""
                     UPDATE chat_messages
                     SET is_read = TRUE
-                    WHERE receiver = %s AND username != %s
-                """, (group, me))   # grp_ なし
+                    WHERE receiver = %s
+                      AND username != %s
+                """, (group, me))
                 conn.commit()
 
-            if not partner and not group:
+            # --- 全体チャットの既読処理 ---
+            else:
                 cur.execute("""
                     UPDATE chat_messages
                     SET is_read = TRUE
-                    WHERE receiver = 'all' AND username != %s
-                """, (me,))
-                conn.commit()
+                    WHERE receiver = 'all'
+                      AND username != %s
+            """, (me,))
+            conn.commit()
 
             # 7. メッセージ整形
             messages = []
