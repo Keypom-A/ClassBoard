@@ -924,11 +924,11 @@ def schedule():
                             file,
                             public_id="latest_schedule",
                             overwrite=True,
-                            resource_type="auto"   # ← PDF も画像もOK
+                            resource_type="auto"
                         )
                         file_url = res.get('secure_url')
 
-                        # DBに保存（必要なら更新）
+                        # DBに保存（毎回新規でOK）
                         cur.execute('''
                             INSERT INTO tasks ("user", content, is_notice, file_path, created_at)
                             VALUES (%s, %s, %s, %s, %s)
@@ -937,15 +937,19 @@ def schedule():
                         conn.commit()
 
                     except Exception as e:
-                        print(f"Schedule Upload Error: {e}")
+                        print("Schedule Upload Error:", e)
 
                 return redirect(url_for('schedule'))
 
-            # GET: Cloudinary の URL を生成（PDF対応）
-            schedule_url = cloudinary.CloudinaryImage(
-                "latest_schedule"
-            ).build_url(resource_type="auto")  # ← ここが重要
+            # GET: 最新の予定表URLを DB から取得
+            cur.execute("""
+                SELECT file_path FROM tasks
+                WHERE content = '【最新】週・月間予定表'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """)
+            row = cur.fetchone()
+            schedule_url = row['file_path'] if row else None
 
-    # ★ url をテンプレートに渡す
     return render_template('schedule.html', role=session.get('role'), url=schedule_url)
 
