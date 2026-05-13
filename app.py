@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from datetime import datetime, timedelta
 import cloudinary
 import cloudinary.uploader
+import cloudinary.api
 import json
 import urllib.request
 import urllib.error
@@ -24,9 +25,10 @@ weather_cache_time = 0
 # --- Cloudinary 設定 ---
 # RenderのEnvironmentに登録した変数から読み込みます
 cloudinary.config(
-  cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'),
-  api_key = os.environ.get('CLOUDINARY_API_KEY'),
-  api_secret = os.environ.get('CLOUDINARY_API_SECRET')
+    cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key = os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret = os.environ.get('CLOUDINARY_API_SECRET'),
+    secure=True
 )
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
