@@ -162,24 +162,24 @@
 
 /* スマホ対応 */
 @media (max-width: 768px) {
-    .chat-input-area {
-        padding: 8px;
+    #sidebar {
+        position: fixed;
+        left: -250px;
+        top: 0;
+        height: 100%;
+        transition: 0.3s;
+        z-index: 1000;
     }
 
-    .input-row input[type="text"] {
-        font-size: 14px;
-        padding: 8px;
+    #sidebar.open {
+        left: 0;
     }
 
-    .input-row input[type="file"] {
-        max-width: 70px;
-    }
-
-    .input-row .send {
-        font-size: 14px;
-        padding: 8px 12px;
+    #main {
+        width: 100%;
     }
 }
+
 
 
 
