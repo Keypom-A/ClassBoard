@@ -58,7 +58,10 @@
     flex: 1;
     overflow-y: auto;
     padding: 15px;
+    padding-bottom: 90px; /* ← 入力欄の高さ分の余白 */
+    box-sizing: border-box;
 }
+
 
 /* ===== 吹き出し行 ===== */
 .msg-row {
@@ -118,12 +121,16 @@
 
 /* 入力欄 */
 .chat-input-area {
-    padding: 10px;
+    position: sticky;
+    bottom: 0;
     background: #fff;
     border-top: 1px solid #ddd;
+    padding: 10px;
     width: 100%;
     box-sizing: border-box;
+    z-index: 10; /* ← スクロール時に埋もれない */
 }
+
 
 .input-row {
     display: flex;
