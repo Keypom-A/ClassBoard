@@ -159,24 +159,27 @@ function updateUnread() {
         .then(res => res.json())
         .then(data => {
 
+            const unread = data.unread;  // ← ここが重要
+
             // 全体チャット
             const allBadge = document.querySelector('[href="/chat"] .badge-notify');
             if (allBadge) {
-                if (data.unread_all > 0) {
+                if (unread["all"] > 0) {
                     allBadge.style.display = "inline-block";
-                    allBadge.textContent = data.unread_all;
+                    allBadge.textContent = unread["all"];
                 } else {
                     allBadge.style.display = "none";
                 }
             }
 
             // グループ
-            for (const g in data.unread_group) {
+            for (const g in unread) {
+                if (g === "all") continue; // 全体は除外
                 const el = document.querySelector(`[href="/chat?group=${g}"] .badge-notify`);
                 if (el) {
-                    if (data.unread_group[g] > 0) {
+                    if (unread[g] > 0) {
                         el.style.display = "inline-block";
-                        el.textContent = data.unread_group[g];
+                        el.textContent = unread[g];
                     } else {
                         el.style.display = "none";
                     }
@@ -184,12 +187,12 @@ function updateUnread() {
             }
 
             // DM
-            for (const u in data.unread_dm) {
+            for (const u in unread) {
                 const el = document.querySelector(`[href="/chat?user=${u}"] .badge-notify`);
                 if (el) {
-                    if (data.unread_dm[u] > 0) {
+                    if (unread[u] > 0) {
                         el.style.display = "inline-block";
-                        el.textContent = data.unread_dm[u];
+                        el.textContent = unread[u];
                     } else {
                         el.style.display = "none";
                     }
