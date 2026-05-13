@@ -949,4 +949,3 @@ def schedule():
     # ★ url をテンプレートに渡す
     return render_template('schedule.html', role=session.get('role'), url=schedule_url)
 
-
